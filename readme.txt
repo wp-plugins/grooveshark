@@ -1,4 +1,4 @@
-=== Grooveshark ===
+=== Grooveshark for Wordpress ===
 Contributors: Grooveshark
 Tags: music, Grooveshark, play, Post, posts, tinysong
 Requires at least: 2.6
