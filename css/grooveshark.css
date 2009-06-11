@@ -322,6 +322,13 @@
 	background:url(../images/remove.png) no-repeat 4px 6px;
 }
 
+.gsNote {
+    display:block !important;
+    width: 20px !important;
+    height: 20px !important;
+    background:url(../images/note.png) no-repeat center !important;
+}
+
 .gsTableButton {
     width:20px !important;
 	text-align:center !important;

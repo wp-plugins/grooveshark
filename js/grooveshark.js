@@ -4,12 +4,14 @@ asavedheight = 0;
 
 //Set up the player and format the UI for wordpress versions 2.6.x and 2.5.x
 jQuery(document).ready(function($) {
-    document.getElementById('widgetHeight').value = 176;
+    if (document.getElementById('widgetHeight') != null) {
+        document.getElementById('widgetHeight').value = 176;
+    }
     var playlistID = 0;
     var heightRegEx = /height\=\"(\d+)\"/
     var playlistRegEx = /\<input type\=\'hidden\' name\=\'gsPlaylistID\' id\=\'gsPlaylistID\' value\=\'(\d+)\'\/>/;
     var postContent = document.getElementById('content');
-    if (postContent.value != null) {
+    if (postContent != null && postContent.value != null) {
         if (postContent.value.match(playlistRegEx)) {
             playlistMatch = playlistRegEx.exec();
             playlistID = playlistMatch[1];
@@ -42,10 +44,10 @@ jQuery(document).ready(function($) {
     if (document.getElementById('wpVersion') != null) {
         addToSelectedPlaylist(playlistID);
     }
-    if (document.getElementById('gsSessionID').value != null) {
+    if (document.getElementById('gsSessionID') != null && document.getElementById('gsSessionID').value != null) {
         player = new jsPlayer(document.getElementById('gsSessionID').value);
     }
-    if (document.getElementById('wpVersion').value != null) {
+    if (document.getElementById('wpVersion') != null && document.getElementById('wpVersion').value != null) {
         if (document.getElementById('wpVersion').value.indexOf('2.6') != -1 || document.getElementById('wpVersion').value.indexOf('2.5') != -1) {
             document.getElementById('gs-query').style.width = '388px';
         }
@@ -61,12 +63,88 @@ jQuery(document).ready(function($) {
             }
         }
     }
+    addEdGrooveshark();
+    //setTimeout('addGroovesharkContentToolbar()',1000);
 	jQuery('#gs-query').focus(function(){
 		if (jQuery('#gs-query').hasClass("empty")) {
 			jQuery('#gs-query').removeClass("empty").val("");
 		}
 	});
 });
+
+//Adds a Grooveshark button to the ed_toolbar
+function addEdGrooveshark() {
+    if (document.getElementById('ed_toolbar') != null) {
+        edGroovesharkButton = document.createElement("input");
+        edGroovesharkButton.id = 'ed_grooveshark';
+        edGroovesharkButton.className = 'ed_button';
+        edGroovesharkButton.type = 'button';
+        edGroovesharkButton.value = 'music';
+        edGroovesharkButton.title = 'Place your music';
+        edGroovesharkButton.onclick = function() {insertGroovesharkTag();};
+        document.getElementById('ed_toolbar').appendChild(edGroovesharkButton);
+    }
+}
+
+
+//Adds a Grooveshark button to the visual toolbar
+function addGroovesharkContentToolbar() {
+    if (document.getElementById('content_toolbar1') != null) {
+        gsSpan = document.createElement("span");
+        gsSpan.className = 'gsNote';
+        gsAnchor = document.createElement("a");
+        gsAnchor.id = 'content_grooveshark';
+        gsAnchor.className = 'mceButton mceButtonEnabled';
+        gsAnchor.title = 'Place your music';
+        gsAnchor.onclick = function() {insertGroovesharkTag();};
+        gsAnchor.href = 'javascript:;';
+        gsAnchor.appendChild(gsSpan);
+        gsCell =  document.getElementById('content_toolbar1').getElementsByTagName('tr')[0].insertCell(1);
+        gsCell.appendChild(gsAnchor);
+    }
+}
+
+
+//Inserts the tag which will be replaced by embed code.
+function insertGroovesharkTag() {
+    if (document.getElementById('gsTagStatus') != null && document.getElementById('gsTagStatus').value == 0) {
+        //IE support
+        if (document.selection) {
+            edCanvas.focus();
+            sel = document.selection.createRange();
+            if (sel.text.length > 0) {
+                sel.text = sel.text + '[[grooveshark]]';
+            }
+            sel.text = '[[grooveshark]]';
+            edCanvas.focus();
+        } else if (edCanvas.selectionStart || edCanvas.selectionStart == '0') {
+            //MOZILLA/NETSCAPE support
+            var startPos = edCanvas.selectionStart;
+            var endPos = edCanvas.selectionEnd;
+            var cursorPos = endPos;
+            var scrollTop = edCanvas.scrollTop;
+            if (startPos != endPos) {
+                edCanvas.value = edCanvas.value.substring(0, endPos) + '[[grooveshark]]' + edCanvas.value.substring(endPos, edCanvas.value.length);
+                cursorPos += 15;
+            } else {
+                edCanvas.value = edCanvas.value.substring(0, startPos) + '[[grooveshark]]' + edCanvas.value.substring(endPos, edCanvas.value.length);
+                cursorPos = startPos + 15;
+            }
+            edCanvas.focus();
+            edCanvas.selectionStart = cursorPos;
+            edCanvas.selectionEnd = cursorPos;
+            edCanvas.scrollTop = scrollTop;
+        } else {
+            edCanvas.value += '[[grooveshark]]';
+            edCanvas.focus();
+        }
+        document.getElementById('gsTagStatus').value = 1;
+        document.getElementById('ed_grooveshark').title = 'One tag at a time';
+        document.getElementById('ed_grooveshark').disabled = true;
+        //document.getElementById('content_grooveshark').title = 'One tag at a time';
+        //document.getElementById('content_grooveshark').onclick = function() {};
+    }
+}
 
 //Intermediate between the user and player.js. Gets the song ID for the song, and the session ID for the stream key.
 function toggleStatus(obj) {
@@ -455,12 +533,18 @@ function gsAppendToContent(obj) {
         var playlistName = document.getElementById('playlistsName').value;
         jQuery(document).ready(function($) {
             jQuery.post(document.getElementById('gsBlogUrl').value + '/wp-content/plugins/grooveshark/gsPost.php', {songString: songString, displayOption: displayOption, widgetWidth: widgetWidth, widgetHeight: widgetHeight, colorsSelect: colorScheme, displayPhrase: displayPhrase, playlistsName: playlistName, sessionID: document.getElementById('gsSessionID').value}, function(returnedData) {
+                if (switchEditors.go() != null) {
+                    switchEditors.go('content','html');
+                }
                 if (document.getElementById('content') != null) {
-                    document.getElementById('content').value = gsRemoveOldWidget(document.getElementById('content').value);
-                    if (positionBeginning) {
-                        document.getElementById('content').value = returnedData + document.getElementById('content').value;
+                    if (document.getElementById('gsTagStatus').value == 1) {
+                        document.getElementById('content').value = gsReplaceTag(document.getElementById('content').value, returnedData);
                     } else {
-                        document.getElementById('content').value += returnedData;
+                        if (positionBeginning) {
+                            document.getElementById('content').value = returnedData + document.getElementById('content').value;
+                        } else {
+                            document.getElementById('content').value += returnedData;
+                        }
                     }
                     document.getElementById('autosaveMusic').value = 0;
                 }
@@ -468,11 +552,14 @@ function gsAppendToContent(obj) {
                     if (document.getElementById('content_ifr').contentDocument != null) {
                         contentIframe = document.getElementById('content_ifr').contentDocument;
                         if (contentIframe.getElementsByTagName('p')[0] != null) {
-                            contentIframe.getElementsByTagName('p')[0].innerHTML = gsRemoveOldWidget(contentIframe.getElementsByTagName('p')[0].innerHTML);
-                            if (positionBeginning) {
-                                contentIframe.getElementsByTagName('p')[0].innerHTML = returnedData + contentIframe.getElementsByTagName('p')[0].innerHTML;
+                            if (document.getElementById('gsTagStatus').value == 1) {
+                                contentIframe.getElementsByTagName('p')[0].innerHTML = gsReplaceTag(contentIframe.getElementsByTagName('p')[0].innerHTML, returnedData);
                             } else {
-                                contentIframe.getElementsByTagName('p')[0].innerHTML += returnedData;
+                                if (positionBeginning) {
+                                    contentIframe.getElementsByTagName('p')[0].innerHTML = returnedData + contentIframe.getElementsByTagName('p')[0].innerHTML;
+                                } else {
+                                    contentIframe.getElementsByTagName('p')[0].innerHTML += returnedData;
+                                }
                             }
                             document.getElementById('autosaveMusic').value = 0;
                         }
@@ -480,17 +567,25 @@ function gsAppendToContent(obj) {
                 }
                 //mce_editor only from wordpress versions below 2.6
                 if (document.getElementById('mce_editor_0') != null) {
-                    document.getElementById('mce_editor_0').contentDocument.body.innerHTML = gsRemoveOldWidget(document.getElementById('mce_editor_0').contentDocument.body.innerHTML);
-                    if (positionBeginning) {
-                        document.getElementById('mce_editor_0').contentDocument.body.innerHTML = returnedData + document.getElementById('mce_editor_0').contentDocument.body.innerHTML;
+                    if (document.getElementById('gsTagStatus').value == 1) {
+                        document.getElementById('mce_editor_0').contentDocument.body.innerHTML = gsReplaceTag(document.getElementById('mce_editor_0').contentDocument.body.innerHTML, returnedData);
                     } else {
-                        document.getElementById('mce_editor_0').contentDocument.body.innerHTML += returnedData;
+                        if (positionBeginning) {
+                            document.getElementById('mce_editor_0').contentDocument.body.innerHTML = returnedData + document.getElementById('mce_editor_0').contentDocument.body.innerHTML;
+                        } else {
+                            document.getElementById('mce_editor_0').contentDocument.body.innerHTML += returnedData;
+                        }
                     }
                     document.getElementById('autosaveMusic').value = 0;
                 }
+                document.getElementById('gsTagStatus').value = 0;
+                document.getElementById('ed_grooveshark').disabled = false;
+                document.getElementById('ed_grooveshark').title = 'Place your music';
+                //document.getElementById('content_grooveshark').onclick = function() {insertGroovesharkTag();};
+                //document.getElementById('content_grooveshark').title = 'Place your music';
                 obj.value = 'Save Music';
                 obj.disabled = false;
-                if (switchEditors.go()) {
+                if (switchEditors.go() != null) {
                     switchEditors.go('content','tinymce');
                 }
             });
@@ -498,13 +593,11 @@ function gsAppendToContent(obj) {
     }
 }
 
-function gsRemoveOldWidget(postContent) {
-    contentRegEx = /(.*)\<div id\=\'gsWidget\'\>.+\<\/div\>(.*)/;
-    if (postContent.match(contentRegEx)) {
-        postContentMatch = contentRegEx.exec();
-        preWidget = postContentMatch[1];
-        postWidget = postContentMatch[2];
-        postContent = preWidget + postWidget;
+function gsReplaceTag(postContent, embedCode) {
+    //takes post content, looks for a [[grooveshark]] tag, and replaces with embed code 
+    if (postContent.indexOf('[[grooveshark]]') != -1) {
+        postContentArray = postContent.split(/\[\[grooveshark\]\]/);
+        postContent = postContentArray[0] + embedCode + postContentArray[1];
     }
     return postContent;
 }
