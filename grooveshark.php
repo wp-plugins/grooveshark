@@ -152,6 +152,7 @@ function groovesharkBox() {
     print "<div id='gsSongSelection'>
     <input type='hidden' name='autosaveMusic' id='autosaveMusic' value='$autosaveMusic' />
     <input type='hidden' name='songIDs' id='songIDs' value='0' />
+    <input type='hidden' name='gsTagStatus' id='gsTagStatus' value='0' />
     <ul class='$tabContainerClass'>
     	<li><a id='search-option' class='$tabClass' href='javascript:;' onclick=\"gsToggleSongSelect('Search')\">Search</a></li>
     	<li><a id='favorites-option' class='$tabClass2' href='javascript:;' onclick=\"gsToggleSongSelect('Favorites')\">Favorites</a></li>
@@ -484,6 +485,8 @@ function gs_appendToComment($data) {
     $data['comment_content'] .= $gsContent;
     return $data;
 }
+// Note: This would serve the same role as the gs_autosaveMusic has for admin post and page edit.
+// Consider adding a new javascript function for this that appends the music to the comment dynamically.
 //End of Comment Related Code
 */
 

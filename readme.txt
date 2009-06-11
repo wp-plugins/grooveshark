@@ -2,8 +2,8 @@
 Contributors: Grooveshark
 Tags: music, Grooveshark, play, Post, posts, tinysong
 Requires at least: 2.6
-Tested up to: 2.7.1
-Stable tag: 1.0.0
+Tested up to: 2.8
+Stable tag: 1.1.0
 
 The Grooveshark plugin allows you to insert music links or Grooveshark Widgets into your posts.
 
