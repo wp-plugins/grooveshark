@@ -4,7 +4,7 @@ Plugin Name: Grooveshark for Wordpress
 Plugin URI: http://www.grooveshark.com/wordpress
 Description: Search for <a href="http://www.grooveshark.com">Grooveshark</a> songs and add links to a song or song widgets to your blog posts. 
 Author: Roberto Sanchez and Vishal Agarwala
-Version: 1.0
+Version: 1.1.0
 Author URI: http://www.grooveshark.com
 */
 
