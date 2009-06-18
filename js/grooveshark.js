@@ -1,6 +1,7 @@
 player = '';
 aquery = '';
 asavedheight = 0;
+gsToolbarCount = 0;
 
 //Set up the player and format the UI for wordpress versions 2.6.x and 2.5.x
 jQuery(document).ready(function($) {
@@ -12,12 +13,14 @@ jQuery(document).ready(function($) {
     var playlistRegEx = /\<input type\=\'hidden\' name\=\'gsPlaylistID\' id\=\'gsPlaylistID\' value\=\'(\d+)\'\/>/;
     var postContent = document.getElementById('content');
     if (postContent != null && postContent.value != null) {
+        var matchedPlaylist = 0;
         if (postContent.value.match(playlistRegEx)) {
+            matchedPlaylist = 1;
             playlistMatch = playlistRegEx.exec();
             playlistID = playlistMatch[1];
             setTimeout('updateCount()',500);
         }
-        if (postContent.value.match(heightRegEx)) {
+        if (postContent.value.match(heightRegEx) && matchedPlaylist == 1) {
             heightMatch = heightRegEx.exec();
             playlistHeight = heightMatch[1];
             document.getElementById('widgetHeight').value = playlistHeight;
@@ -64,7 +67,7 @@ jQuery(document).ready(function($) {
         }
     }
     addEdGrooveshark();
-    //setTimeout('addGroovesharkContentToolbar()',1000);
+    setTimeout('addGroovesharkContentToolbar()',1000);
 	jQuery('#gs-query').focus(function(){
 		if (jQuery('#gs-query').hasClass("empty")) {
 			jQuery('#gs-query').removeClass("empty").val("");
@@ -81,7 +84,7 @@ function addEdGrooveshark() {
         edGroovesharkButton.type = 'button';
         edGroovesharkButton.value = 'music';
         edGroovesharkButton.title = 'Place your music';
-        edGroovesharkButton.onclick = function() {insertGroovesharkTag();};
+        edGroovesharkButton.onclick = function() {insertGroovesharkTag(1);};
         document.getElementById('ed_toolbar').appendChild(edGroovesharkButton);
     }
 }
@@ -96,20 +99,31 @@ function addGroovesharkContentToolbar() {
         gsAnchor.id = 'content_grooveshark';
         gsAnchor.className = 'mceButton mceButtonEnabled';
         gsAnchor.title = 'Place your music';
-        gsAnchor.onclick = function() {insertGroovesharkTag();};
+        gsAnchor.onclick = function() {insertGroovesharkTag(2);};
         gsAnchor.href = 'javascript:;';
         gsAnchor.appendChild(gsSpan);
         gsCell =  document.getElementById('content_toolbar1').getElementsByTagName('tr')[0].insertCell(1);
         gsCell.appendChild(gsAnchor);
+    } else {
+        if (gsToolbarCount <= 20) {
+            gsToolbarCount++;
+            setTimeout('addGroovesharkContentToolbar()',1000);
+        }
     }
 }
 
 
 //Inserts the tag which will be replaced by embed code.
-function insertGroovesharkTag() {
+function insertGroovesharkTag(identifier) {
+    if (switchEditors.go() != null && identifier == 2) {
+        switchEditors.go('content','html');
+    }
     if (document.getElementById('gsTagStatus') != null && document.getElementById('gsTagStatus').value == 0) {
         //IE support
         if (document.selection) {
+            if (document.getElementById('content') != null) {
+                var edCanvas = document.getElementById('content');
+            }
             edCanvas.focus();
             sel = document.selection.createRange();
             if (sel.text.length > 0) {
@@ -141,8 +155,11 @@ function insertGroovesharkTag() {
         document.getElementById('gsTagStatus').value = 1;
         document.getElementById('ed_grooveshark').title = 'One tag at a time';
         document.getElementById('ed_grooveshark').disabled = true;
-        //document.getElementById('content_grooveshark').title = 'One tag at a time';
-        //document.getElementById('content_grooveshark').onclick = function() {};
+        document.getElementById('content_grooveshark').title = 'One tag at a time';
+        document.getElementById('content_grooveshark').onclick = function() {};
+    }
+    if (switchEditors.go() != null && identifier == 2) {
+        switchEditors.go('content','tinymce');
     }
 }
 
@@ -581,8 +598,8 @@ function gsAppendToContent(obj) {
                 document.getElementById('gsTagStatus').value = 0;
                 document.getElementById('ed_grooveshark').disabled = false;
                 document.getElementById('ed_grooveshark').title = 'Place your music';
-                //document.getElementById('content_grooveshark').onclick = function() {insertGroovesharkTag();};
-                //document.getElementById('content_grooveshark').title = 'Place your music';
+                document.getElementById('content_grooveshark').onclick = function() {insertGroovesharkTag();};
+                document.getElementById('content_grooveshark').title = 'Place your music';
                 obj.value = 'Save Music';
                 obj.disabled = false;
                 if (switchEditors.go() != null) {

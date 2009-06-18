@@ -4,7 +4,7 @@ Plugin Name: Grooveshark for Wordpress
 Plugin URI: http://www.grooveshark.com/wordpress
 Description: Search for <a href="http://www.grooveshark.com">Grooveshark</a> songs and add links to a song or song widgets to your blog posts. 
 Author: Roberto Sanchez and Vishal Agarwala
-Version: 1.1.0
+Version: 1.1.1
 Author URI: http://www.grooveshark.com
 */
 
@@ -26,9 +26,12 @@ Copyright 2009 Escape Media Group (email: vishal.agarwala@escapemg.com)
 */
 
 //Defines json_encode and json_decode for PHP < 5.20
+if (!function_exists('json_decode') or !function_exists('json_encode')) {
+    require_once 'JSON.php';
+}
+
 if ( !function_exists('json_decode') ){
     function json_decode($content){
-        require_once 'JSON.php';
         $json = new Services_JSON(SERVICES_JSON_LOOSE_TYPE);
         return $json->decode($content);
     }
@@ -36,7 +39,6 @@ if ( !function_exists('json_decode') ){
 
 if ( !function_exists('json_encode') ){
     function json_encode($content){
-        require_once 'JSON.php';
         $json = new Services_JSON;
         return $json->encode($content);
     }
