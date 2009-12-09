@@ -305,7 +305,7 @@
 	display:block;
 	width:20px;
 	height:24px;
-	background:url(../images/pause.png) no-repeat 4px 6px;
+	background:url(../images/stop.png) no-repeat 4px 6px;
 }
 
 .gsAdd {
@@ -329,9 +329,28 @@
     background:url(../images/note.png) no-repeat center !important;
 }
 
+.gsShow {
+    display:block;
+    width:20px;
+    height:24px;
+    background:url(../images/show.png) no-repeat 4px 6px;
+}
+
+.gsHide {
+    display:block;
+    width:20px;
+    height:24px;
+    background: #FEE url(../images/hide.png) no-repeat 4px 6px;
+}
+
+.gsPlaylistButton {
+    width:40px;
+}
+
 .gsTableButton {
     width:20px !important;
-	text-align:center !important;
+    text-align:center !important;
+    font-size:0px !important;
 }
 
 .gsTableButton:hover {
@@ -340,6 +359,16 @@
 
 .gsSongBox26 .gsTableButton:hover {
 	background-color: #CEE1EF !important;
+}
+
+.playlistRevealedSong {
+    outline: 0 none;
+    background-color: #FCC !important;
+}
+
+.gsTr1.playlistRevealedSong {
+    outline: 0 none;
+    background-color: #FEE !important;
 }
 
 /*
@@ -433,7 +462,7 @@
 
 #playlistAppearance {
     margin: 0 0 0 2px !important;
-    font-size: 16px !important;
+    font-size: 1.5em !important;
     padding: 0 !important;
     border: 0 none !important;
 }
@@ -551,4 +580,31 @@
 #selected-songs-table pre {
 	font-family:"Lucida Grande",Verdana,Arial,"Bitstream Vera Sans",sans-serif !important;
 	font-size:11px !important;
+}
+
+/*
+ * Styling for the comment box
+ */
+.gsAppendToComment {
+    width: 80px !important;
+    text-shadow: 0 1px 0 #fff;
+    background: #21759b none repeat-x scroll left top;
+    border-color: #298cba !important;
+    color: #fff !important;
+    font-weight: bold;
+    font-size: 11px !important;
+    cursor: pointer;
+    padding:2px 8px;
+    -moz-border-radius-bottomleft: 11px;
+    -moz-border-radius-bottomright: 11px;
+    -moz-border-radius-topleft: 11px;
+    -moz-border-radius-topright: 11px;
+}
+
+/*
+ * Misc
+ */
+.temporaryError {
+    font-weight: bold;
+    background-color: #FCC;
 }

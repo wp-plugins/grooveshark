@@ -26,6 +26,7 @@
 
 /** Keep hold of the current table being dragged */
 var currenttable = null;
+var isVersion26 = null;
 
 /** Capture the onmousemove so that we can see if a row from the current
  *  table if any is being dragged.
@@ -43,11 +44,10 @@ document.onmousemove = function(ev){
             currenttable.oldY = y;
             // update the style to show we're dragging
             // Grooveshark Wordpress Plugin Code
-            if (document.getElementById('wpVersion').value.indexOf('2.6') != -1 || document.getElementById('wpVersion').value.indexOf('2.5') != -1) {
-                currenttable.dragObject.className = 'gsTrDragged26';
-            } else {
-                currenttable.dragObject.className = 'gsTrDragged27';
+            if (isVersion26 == null) {
+                isVersion26 = ((document.getElementById('wpVersion').value.indexOf('2.6') != -1) || (document.getElementById('wpVersion').value.indexOf('2.5') != -1)) ? true : false;
             }
+            currenttable.dragObject.className = isVersion26 ? 'gsTrDragged26' : 'gsTrDragged27';
             // End Plugin Code
             // If we're over a row then move the dragged row to there so that the user sees the
             // effect dynamically
@@ -56,36 +56,36 @@ document.onmousemove = function(ev){
                 if (movingDown && currenttable.dragObject != currentRow) {
                     currenttable.dragObject.parentNode.insertBefore(currenttable.dragObject, currentRow.nextSibling);
                     //Grooveshark Wordpress Plugin Code
-                    dragImage = currenttable.dragObject.getElementsByTagName("td")[2].getElementsByTagName("a")[0];
-                    currentImage = currentRow.getElementsByTagName("td")[2].getElementsByTagName("a")[0];
+                    var index = 2;
+                    if (document.getElementById('isSmallBox').value == 1) {
+                        index = 0;
+                    }
+                    dragImage = currenttable.dragObject.getElementsByTagName("td")[index].getElementsByTagName("a")[0];
+                    currentImage = currentRow.getElementsByTagName("td")[index].getElementsByTagName("a")[0];
                     dragImage.name = parseInt(dragImage.name) + 1;
                     currentImage.name = parseInt(currentImage.name) - 1;
                     if (currentImage.name % 2) {
                         currentRow.className = "gsTr1";
                     } else {
-                        if (document.getElementById('wpVersion').value.indexOf('2.6') != -1 || document.getElementById('wpVersion').value.indexOf('2.5') != -1) {
-                            currentRow.className = "gsTr26";
-                        } else {
-                            currentRow.className = "gsTr27";
-                        }
+                        currentRow.className = isVersion26 ? 'gsTr26' : 'gsTr27';
                     }
                     //End Plugin Code
                 } else {
                     if (!movingDown && currenttable.dragObject != currentRow) {
                         currenttable.dragObject.parentNode.insertBefore(currenttable.dragObject, currentRow);
                         //Grooveshark Wordpress Plugin Code
-                        dragImage = currenttable.dragObject.getElementsByTagName("td")[2].getElementsByTagName("a")[0];
-                        currentImage = currentRow.getElementsByTagName("td")[2].getElementsByTagName("a")[0];
+                        var index = 2;
+                        if (document.getElementById('isSmallBox').value == 1) {
+                            index = 0;
+                        }
+                        dragImage = currenttable.dragObject.getElementsByTagName("td")[index].getElementsByTagName("a")[0];
+                        currentImage = currentRow.getElementsByTagName("td")[index].getElementsByTagName("a")[0];
                         dragImage.name = parseInt(dragImage.name) - 1;
                         currentImage.name = parseInt(currentImage.name) + 1;
                         if (currentImage.name % 2) {
                             currentRow.className = "gsTr1";
                         } else {
-                            if (document.getElementById('wpVersion').value.indexOf('2.6') != -1 || document.getElementById('wpVersion').value.indexOf('2.5') != -1) {
-                                currentRow.className = "gsTr26";
-                            } else {
-                                currentRow.className = "gsTr27";
-                            }
+                            currentRow.className = isVersion26 ? 'gsTr26' : 'gsTr27';
                         }
                         //End plugin code
                     }
@@ -104,18 +104,18 @@ document.onmouseup   = function(ev){
         // The row will already have been moved to the right place so we just reset stuff
         var curTable = currenttable.table;
         //Grooveshark Wordpress Plugin Code
+        var index = 2;
+        if (document.getElementById('isSmallBox').value == 1) {
+            index = 0;
+        }
         for (var i = 0; i < curTable.rows.length; i++) {
             var curRow = curTable.rows[i];
-            var curImage = curRow.getElementsByTagName("td")[2].getElementsByTagName("a")[0];
+            var curImage = curRow.getElementsByTagName("td")[index].getElementsByTagName("a")[0];
             curImage.name = i;
             if (i % 2) {
                 curRow.className = "gsTr1";
             } else {
-                if (document.getElementById('wpVersion').value.indexOf('2.6') != -1 || document.getElementById('wpVersion').value.indexOf('2.5') != -1) {
-                    curRow.className = "gsTr26";
-                } else {
-                    curRow.className = "gsTr27";
-                }
+                curRow.className = isVersion26 ? 'gsTr26' : 'gsTr27';
             }
         }
         //End Plugin Code
@@ -132,18 +132,18 @@ document.onmouseup   = function(ev){
 function updateTableRows() {
     if (currenttable && currenttable.dragObject) {
         var curTable = currenttable.table;
+        var index = 2;
+        if (document.getElementById('isSmallBox').value == 1) {
+            index = 0;
+        }
         for (var i = 0; i < curTable.rows.length; i++) {
             var curRow = curTable.rows[i];
-            var curImage = curRow.getElementsByTagName("td")[2].getElementsByTagName("a")[0];
+            var curImage = curRow.getElementsByTagName("td")[index].getElementsByTagName("a")[0];
             curImage.name = i;
             if (i % 2) {
                 curRow.className = "gsTr1";
             } else {
-                if (document.getElementById('wpVersion').value.indexOf('2.6') != -1 || document.getElementById('wpVersion').value.indexOf('2.5') != -1) {
-                    curRow.className = "gsTr26";
-                } else {
-                    curRow.className = "gsTr27";
-                }
+                curRow.className = isVersion26 ? 'gsTr26' : 'gsTr27';
             }
         }
         currenttable = null;
@@ -166,7 +166,7 @@ function getEventSource(evt) {
  * Encapsulate table Drag and Drop in a class. We'll have this as a Singleton
  * so we don't get scoping problems.
  */
-function TableDnD() {
+function TableDnD(table) {
     /** Keep hold of the current drag object if any */
     this.dragObject = null;
     /** The current mouse offset */
@@ -300,4 +300,6 @@ function TableDnD() {
 		}
 		return null;
 	}
+
+    this.init(table);
 }
