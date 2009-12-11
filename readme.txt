@@ -40,7 +40,8 @@ Send all support questions to the author: roberto.sanchez [at] escapemg.com.
 
 The requirements to use the Grooveshark Wordpress plugin are:
 
-* Standard Wordpress requirements for version 2.6 and higher.
+* Most standard Wordpress requirements for version 2.6 and higher.
+* PHP 5
 * Curl enabled in PHP.
 * Javascript enabled in browser.
 
