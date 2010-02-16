@@ -1,180 +1,133 @@
+function debug(e) {
+    if (window.console && console.log)
+        return console.log(e);
+    if (window.opera && opera.postError) {
+        return opera.postError(e);
+    }
+}
+
 /*
  * Main Document Ready Function
  */
-
 jQuery(function() {
     // Resize the search button for small box used in comments
     if (jQuery('#gsSearchButton').hasClass('gsSmallButton')) {
         jQuery('#gsSearchButton').width(60);
     }
     var gsDataStore = jQuery('#gsDataStore');
-    gsDataStore.data('gsDataStore', {player: '', savedHeight: false, isVersion26: false, lastPlayed: false});
+    gsDataStore.data('gsDataStore', {isVersion26: false, lastPlayed: false});
     // Add an onfocus event to the song search input to remove grayed-out text
     jQuery('#gs-query').focus(function() {
         if (jQuery(this).hasClass('empty')) {
             jQuery(this).removeClass('empty').val('');
         }
     });
-    // The rest of this function does not need to be setup for the small box
-    if (jQuery('#isSmallBox', context).val() == 1) {
-        return;
-    }
-    // Add an onclick event to the visual tab in content edit area to ensure that the music placement button is added
-    jQuery('#edButtonPreview').click(function() {
-        if (jQuery('#content_grooveshark').length == 0) {
-            jQuery(jQuery('#content_toolbar1')[0].rows[0]).append("<td><a href='javascript:;' title='Place your music' class='mceButton mceButtonEnabled' id='content_grooveshark' onclick='insertGroovesharkTag(2)'><span class='gsNote'></span></a></td>");
+    // Event delegation for clicks
+    jQuery('#save-music-choice-favorites, #save-music-choice-playlists, #selected-songs-table, #search-results-wrapper').click(function(ev) {
+        if (ev.target.className.indexOf('gsAdd') != -1) {
+            if (ev.target.className.indexOf('gsPlaylistAdd') != -1) {
+                addToSelectedPlaylist(ev.target);
+            } else {
+                addToSelected(ev.target.name);
+            }
+            return false;
+        }
+        if (ev.target.className.indexOf('gsRemove') != -1) {
+            removeFromSelected(ev.target);
+            return false;
+        }
+        if (ev.target.className.indexOf('gsShow') != -1) {
+            // Only works one way (hide)
+            showPlaylistSongs(ev.target);
+            return false;
+        }
+        if (ev.target.className.indexOf('gsHide') != -1) {
+            hidePlaylistSongs(ev.target);
+            return false;
+        }
+        if (ev.target.className.indexOf('gsPlay') != -1) {
+            toggleSong(ev.target);
+            return false;
+        }
+        if (ev.target.className.indexOf('gsPause') != -1) {
+            toggleSong(ev.target);
+            return false;
         }
     });
-    // Adds the music placement button to the visual buttons row if that row exists in the dom (if it doesn't yet exist the onclick event above accomplishes the same task when the user needs it)
-    if (typeof(jQuery('#content_toolbar1')[0]) != 'undefined') {
-        jQuery(jQuery('#content_toolbar1')[0].rows[0]).append("<td><a href='javascript:;' title='Place your music' class='mceButton mceButtonEnabled' id='content_grooveshark' onclick='insertGroovesharkTag(2)'><span class='gsNote'></span></a></td>");
-    }
-    // Adds the music placement text button to the text buttons
-    jQuery('#ed_toolbar').append("<input type='button' id='ed_grooveshark' class='ed_button' value='music' title='Place your music' onclick='insertGroovesharkTag(1);'/>");
-    // Set up the jQuery context to minimize the search area for the jQuery() function
-    var context = jQuery('#groovesharkdiv');
-    // Change the colors preview based on the selected colors determined server-side
-    changeColor(jQuery('#colors-select', context)[0]);
-    // Set up data store for the plugin
-    var value = jQuery('#wpVersion', context).val();
-    if (value != undefined) {
-        if ((value.indexOf('2.6') != -1) || (value.indexOf('2.5') != -1)) {
-            gsDataStore.data('gsDataStore').isVersion26 = true;
-        }
-    }
-    if (typeof(jQuery('#gsSessionID').val()) != 'undefined') {
-        // Normally used to set up the player
-        // gsDataStore.data('gsDataStore').player = new jsPlayer({errorCallback: 'gsErrorCallback', statusCallback: 'gsStatusCallback', songCompleteCallback: 'gsSongComplete'});
-    }
-    var playlistID = 0;
-    var heightRegEx = /height\=\"(\d+)\"/;
-    var playlistRegEx = /(\<input.+id\=['"]gsPlaylistID['"].+\/>)/;
-    // determines which content box is used and set that as the reference for search of heigh and playlistID
-    var content = (typeof(jQuery('#content').val()) != 'undefined') ? jQuery('#content') : ((typeof(jQuery('#content_ifr').val()) != 'undefined') ? jQuery('#content_ifr') : '');
-    if (content != '') {
-        var matchedPlaylist = 0;
-        if (content.val().match(playlistRegEx)) {
-            // Found a playlist, look for the playlistID and save it
-            matchedPlaylist = 1;
-            var playlistMatch = playlistRegEx.exec();
-            playlistID = playlistMatch[1];
-            var playlistIDRegEx = /value\=['"](\d+)["']/;
-            playlistID.match(playlistIDRegEx);
-            playlistMatch =  playlistIDRegEx.exec();
-            playlistID = playlistMatch[1];
-        }
-        if ((matchedPlaylist == 1) && (content.val().match(heightRegEx))) {
-            // Found tha playlist and found the previous widget height
-            var heightMatch = heightRegEx.exec();
-            var playlistHeight = heightMatch[1];
-            jQuery('#widgetHeight', content).val(playlistHeight);
-            gsDataStore.data('gsDataStore').savedHeight = true;
-        }
-    }
-    // With the given playlistID, update the selected songs list with all songs in the widget currently used on the post
-    // Will need an alternate way of doing this. The intent is to do away with gsPlaylistSongs calls and have the
-    // playlist information ready as soon as the user clicks on a playlist button.
-    /*
-    playlistID = parseInt(playlistID);
-    if (jQuery('#wpVersion', context).length != 0) {
-        addToSelectedPlaylist(playlistID);
-    }
-    */
-});
-
-if (jQuery('a.widget-action').length) {
-    jQuery('a.widget-action').live('click', function() {
-            // bind event to widget-action arrow that opens/closes sidebar widget options
-            var widget = jQuery(this).closest('div.widget');
-            if ((widget.find('#groovesharkSidebarOptionsBox').length) || (widget.find('#groovesharkSidebarRssBox').length)) {
-                // Only modify box when the box is for the Grooveshark Sidebar
-                var widgetInside = widget.children('.widget-inside');
-                if (widgetInside.is(":hidden")) {
-                    // If the box is opening, modify it's width
-                    widget.css({width: '400px', marginLeft: '-135px'});
+    /* The following code for dragging and dropping table rows was adapted from TableDND, created by Denis Howlet
+     * You can find the original version at: http://www.isocra.com/
+     */
+    var songsTable = jQuery('#selected-songs-table');
+    songsTable.data('dnd', {table: songsTable[0], oldY: 0, allRows: []});
+    songsTable.data('dnd').isVersion26 = ((document.getElementById('wpVersion').value.indexOf('2.6') != -1) || (document.getElementById('wpVersion').value.indexOf('2.5') != -1)) ? true : false;
+    jQuery(songsTable[0]).mousemove(function(ev) {
+        currentData = jQuery(this).data('dnd');
+        if (currentData.dragObject) {
+            var y = ev.pageY - currentData.mouseOffset;
+            if (y != currentData.oldY) {
+                var movingDown = y > currentData.oldY;
+                currentData.oldY = y;
+                var currentRow = jQuery(ev.target).closest('tr')[0];
+                if (currentRow && (currentRow.parentNode.parentNode.id = 'selected-songs-table')) {
+                    if (currentData.dragObject != currentRow) {
+                        if (movingDown) {
+                            var nextRow = currentData.dragObject.nextSibling;
+                            while (!!nextRow && (nextRow.previousSibling != currentRow)) {
+                                if (!jQuery(nextRow).hasClass('iteratedRow')) {
+                                    currentData.allRows.push(nextRow);
+                                    jQuery(nextRow).addClass('iteratedRow');
+                                }
+                                nextRow = nextRow.nextSibling;
+                            }
+                            jQuery(currentRow).after(currentData.dragObject);
+                        } else {
+                            var prevRow = currentData.dragObject.previousSibling;
+                            while (!!prevRow && (prevRow.nextSibling != currentRow)) {
+                                if (!jQuery(prevRow).hasClass('iteratedRow')) {
+                                    currentData.allRows.push(prevRow);
+                                    jQuery(prevRow).addClass('iteratedRow');
+                                }
+                                prevRow = prevRow.previousSibling;
+                            }
+                            jQuery(currentRow).before(currentData.dragObject);
+                        }
+                    }
                 }
             }
+            return false;
+        }
     });
-}
-
-//Inserts the tag which will be replaced by embed code.
-function insertGroovesharkTag(identifier) {
-    if (typeof(switchEditors) != 'undefined') {
-        if (switchEditors.go() != null && identifier == 2) {
-            switchEditors.go('content','html');
-        }
-    }
-    if (document.getElementById('gsTagStatus') != null && document.getElementById('gsTagStatus').value == 0) {
-        if (document.getElementById('content') != null) {
-            var edCanvas = document.getElementById('content');
-        }
-        //IE support
-        if (document.selection) {
-            edCanvas.focus();
-            sel = document.selection.createRange();
-            if (sel.text.length > 0) {
-                sel.text = sel.text + '[[grooveshark]]';
-            } else {
-                sel.text = '[[grooveshark]]';
+    jQuery(document).mouseup(function() {
+        var currentData = jQuery('#selected-songs-table').data('dnd');
+        if (currentData.dragObject && currentData.allRows.length) {
+            var rowClass = currentData.isVersion26 ? 'gsTr26' : 'gsTr27';
+            var allRows = currentData.allRows;
+            for (var i = 0; i < allRows.length; i++) {
+                allRows[i].className = (allRows[i].rowIndex % 2) ? 'gsTr1' : rowClass;
             }
-            edCanvas.focus();
-        } else if (edCanvas.selectionStart || edCanvas.selectionStart == '0') {
-            //MOZILLA/NETSCAPE support
-            var startPos = edCanvas.selectionStart;
-            var endPos = edCanvas.selectionEnd;
-            var cursorPos = endPos;
-            var scrollTop = edCanvas.scrollTop;
-            if (startPos != endPos) {
-                edCanvas.value = edCanvas.value.substring(0, endPos) + '[[grooveshark]]' + edCanvas.value.substring(endPos, edCanvas.value.length);
-                cursorPos += 15;
-            } else {
-                edCanvas.value = edCanvas.value.substring(0, startPos) + '[[grooveshark]]' + edCanvas.value.substring(endPos, edCanvas.value.length);
-                cursorPos = startPos + 15;
-            }
-            edCanvas.focus();
-            edCanvas.selectionStart = cursorPos;
-            edCanvas.selectionEnd = cursorPos;
-            edCanvas.scrollTop = scrollTop;
-        } else {
-            edCanvas.value += '[[grooveshark]]';
-            edCanvas.focus();
+            currentData.dragObject = null;
+            currentData.mouseOffset = null;
+            currentData.oldY = 0;
+            currentData.allRows = [];
         }
-        document.getElementById('gsTagStatus').value = 1;
-        document.getElementById('ed_grooveshark').title = 'One tag at a time';
-        document.getElementById('ed_grooveshark').onclick = function() {};
-        document.getElementById('content_grooveshark').title = 'One tag at a time';
-        document.getElementById('content_grooveshark').onclick = function() {};
-    }
-    if (typeof(switchEditors) != 'undefined') {
-        if (switchEditors.go() != null && identifier == 2) {
-            switchEditors.go('content','tinymce');
+    });
+    jQuery(songsTable[0]).mousedown(function(ev) {
+        if ((ev.target.className.indexOf('gsPlay') != -1) || (ev.target.className.indexOf('gsRemove') != -1)) {
+            return false;
         }
+        var currentData = jQuery(this).data('dnd');
+        var row = jQuery(ev.target).closest('tr')[0];
+        row.className = currentData.isVersion26 ? 'gsTrDragged26' : 'gsTrDragged27';
+        currentData.dragObject = row;
+        currentData.mouseOffset = ev.pageY;
+        currentData.allRows.push(row);
+        return false;
+    });
+    // The rest of this function does not need to be setup for the small box
+    if ((jQuery('#isSmallBox').val() == 0) && (typeof(groovesharkFullSetup) != 'undefined')) {
+        groovesharkFullSetup(gsDataStore);
     }
-}
-
-/*
- * Sidebar setup functions
- */
-
-// Used as the onclick function for playlist radio input elements in the sidebar widget options panel
-function groovesharkUpdateChoice(obj) {
-   var height = 176; 
-   height += (22 * obj.className); 
-   if (height > 1000) { 
-       height = 1000;
-   } 
-   // The context is needed for jQuery to actually change the value of sidebarWidgetHeight; also, document.getElementById.value won't change it either
-   jQuery('#gsSidebarWidgetHeight', jQuery(obj).parent().parent().parent().parent()).val(height);
-}
-
-// Used as the onchange functions for the width/height text input elements in the sidebar widget options panel
-function changeSidebarHeight(obj) {
-    document.getElementById('hiddenSidebarWidgetHeight').value = obj.value;
-}
-
-function changeSidebarWidth(obj) {
-    document.getElementById('hiddenSidebarWidgetWidth').value = obj.value;
-}
+});
 
 /*
  * Main Grooveshark Add Music Box functions
@@ -184,30 +137,26 @@ function changeSidebarWidth(obj) {
 function gsSearch(obj) {
     obj.value = '...';
     obj.disabled = true;
-    var aquery = document.getElementById("gs-query").value;
-    var sessionID = document.getElementById('gsSessionID').value;
-    var limit = document.getElementById('gsLimit').value;
-    var wpurl = document.getElementById('gsBlogUrl').value;
-    var isVersion26 = jQuery('#gsDataStore').data('gsDataStore').isVersion26;
-    var isSmallBox = document.getElementById('isSmallBox').value;
-    var random = Math.floor(Math.random()*100);
-    if (aquery != '') {
+    var query = document.getElementById('gs-query').value;
+    var random = Math.floor(Math.random()*10000);
+    if (query != '') {
         // load the table containing the search results
-        jQuery('#search-results-wrapper').load(wpurl + "/wp-content/plugins/grooveshark/gsSearch.php?" + random, {query: aquery, sessionID: sessionID, limit: limit, isVersion26: isVersion26, isSmallBox: isSmallBox}, function(){
+        jQuery('#search-results-wrapper').load(document.getElementById('gsBlogUrl').value + "/wp-content/plugins/grooveshark/gsSearch.php?" + random, {query: query, sessionID: document.getElementById('gsSessionID').value, limit: document.getElementById('gsLimit').value, isVersion26: jQuery('#gsDataStore').data('gsDataStore').isVersion26, isSmallBox: document.getElementById('isSmallBox').value}, function(){
             if (jQuery('#search-results-wrapper').children().length > 0) {
                 // Header for the search result table
-                jQuery('#queryResult').html('Search results for "' + aquery + '":');
-                // Revert buttons to inactive state
-                obj.value = 'Search';
-                obj.disabled = false;
-                // Show results
+                jQuery('#queryResult').html('Search results for "' + query + '":');
+                                // Show results
                 jQuery('#search-results-container').add('#search-results-wrapper').show();
             } else {
                 jQuery('#queryResult').html('There was an error with your search. If this error persists, please contact the author.').show();
             }
+            // Revert buttons to inactive state
+            obj.value = 'Search';
+            obj.disabled = false;
         });
     }
 }
+
 
 //Handles selecting a song for addition to the post.
 function addToSelected(songInfo) {
@@ -225,193 +174,51 @@ function addToSelected(songInfo) {
         if (tableLength % 2) {
             className = 'gsTr1';
         }
-        // Different style for wordpress version 2.6 and under
-        var preClass = isVersion26 ? 'gsTr26' : 'gsTr27';
         // Prepare the row with the selected song
-        var rowContent = "<tr class='"+className+"'><td class='gsTableButton'>" + ((document.getElementById('isSmallBox').value == 1) ? ("<a class='gsRemove' title='Remove This Song' style='cursor:pointer;' onclick='removeFromSelected(this);'></a></td>") : ("<a title='Play This Song' class='gsPlay' name='"+songID+"' style='cursor: pointer;' onclick='toggleStatus(this);'></a></td>")) + "<td><pre title='Drag and drop this row to change the order of your songs' class='"+preClass+"'>"+songNameComplete+"</pre><input type='hidden' name='songsInfoArray[]' class='songsInfoArrayClass' value='"+songID+"'/></td>" + ((document.getElementById('isSmallBox').value == 1) ? '' : "<td class='gsTableButton'><a title='Remove This Song' class='gsRemove' style='cursor: pointer; float: right;' onclick='removeFromSelected(this);'></a></td>") + "</tr>";
+        var rowContent = "<tr class='"+className+"'><td class='gsTableButton'>" + ((document.getElementById('isSmallBox').value == 1) ? ("<a class='gsRemove' title='Remove This Song' style='cursor:pointer;'></a></td>") : ("<a title='Play This Song' class='gsPlay' name='"+songID+"' style='cursor: pointer;'></a></td>")) + "<td>"+songNameComplete+"<input type='hidden' name='songsInfoArray[]' class='songsInfoArrayClass' value='"+songID+"'/></td>" + ((document.getElementById('isSmallBox').value == 1) ? '' : "<td class='gsTableButton'><a title='Remove This Song' class='gsRemove' style='cursor: pointer; float: right;'></a></td>") + "</tr>";
         selectedTable.append(rowContent);
-        // Make the row draggable
-        TableDnD(selectedTable[0]);
         // Auto-adjust the widget height for the new number of songs, unless height is predetermined by user
         widgetHeight = jQuery('#widgetHeight');
-        if ((widgetHeight.val() < 1000) && (jQuery('#gsDataStore').data('gsDataStore').savedHeight == false)) {
-            widgetHeight.val(parseInt(widgetHeight.val()) + 22);
+        if (widgetHeight.val() < 1000) {
+            widgetHeight.val((+widgetHeight.val()) + 22);
         }
     }
     updateCount();
 }
 
-//Handles selecting a playlist for addition to the post.
-function addToSelectedPlaylist(obj) {
-    // prepare playlist info
-    var playlistSongs = obj.innerHTML;
-    var playlistID = obj.name;
-    var playlistSongs = jQuery.parseJSON(playlistSongs);
-    var selectedTable = jQuery('#selected-songs-table');
-    if ((typeof playlistSongs == 'undefined') || (playlistSongs.length == 0)) {
-        // No songs available, display error message
-        selectedTable.append('<tr class="temporaryError"><td></td><td><pre>An unexpected error occurred while loading your playlist. Contact the author for support</pre></td><td></td></tr>');
-        setTimeout(function(){jQuery('.temporaryError').fadeOut('slow', function(){jQuery(this).remove();});}, 3000);
-        return;
-    }
-    // prepare needed variables
-    var count = selectedTable[0].rows.length - 1;
-    var isVersion26 = jQuery('#gsDataStore').data('gsDataStore').isVersion26;
-    // Different string lengths allowed for wordpress versions 2.6 and under
-    var stringLimit = isVersion26 ? 71 : 78;
-    // Different alt row styling for wordpress versions 2.6 and under
-    var altClass = isVersion26 ? 'gsTr26' : 'gsTr27';
-    // Different pre styling for wordpress versions 2.6 and under
-    var preClass = isVersion26 ? 'gsPreSingle26' : 'gsPreSingle27';
-    // Prepare widgetHeight for auto-adjust
-    var widgetHeight = parseInt(jQuery('#widgetHeight').val());
-    // Prepare the new song content
-    var newSongContent = '';
-    var savedHeight = jQuery('#gsDataStore').data('gsDataStore').savedHeight;
-    for (var i = 0; i < playlistSongs.length; i++) {
-        // Get all relevant song information
-        var songName = playlistSongs[i].songName;
-        var artistName = playlistSongs[i].artistName;
-        var songNameComplete = songName + " by " + artistName;
-        if (songNameComplete.length > stringLimit) {
-            songNameComplete = songName.substring(0,stringLimit - 3 - artistName.length) + "&hellip;" + " by " + artistName;
-        }
-        var songID = playlistSongs[i].songID;
-        if (songNameComplete && songID) {
-            // If song information is returned
-            count++;
-            var newSongRow = "<tr class='" + (count % 2 ? altClass : 'gsTr1') + " newRow'><td class='gsTableButton'><a title='Play this song' class='gsPlay' name='"+songID+"' style='cursor: pointer;' onclick='toggleStatus(this);'></a></td><td><pre title='Drag and drop this row to change the order of your songs' class='"+preClass+"'>"+songNameComplete+"</pre><input type='hidden' name='songsInfoArray[]' class='songsInfoArrayClass' value='"+songID+"'/></td><td class='gsTableButton'><a title='Remove This Song' class='gsRemove' style='cursor: pointer; float: right;' onclick='removeFromSelected(this);'></a></td></tr>";
-            // Make the new row draggable
-            newSongContent += newSongRow;
-            if ((widgetHeight < 1000) && (savedHeight == false)) {
-                widgetHeight += 22;
-            }
-        }
-    }
-    selectedTable.append(newSongContent);
-    // Make the new rows draggable
-        TableDnD(jQuery('#selected-songs-table')[0]);
-        updateCount();
-    jQuery('#widgetHeight').val(widgetHeight);
-}
-
-// Handles showing all playlist songs before adding to post
-function showPlaylistSongs(obj) {
-    var playlistSongs = obj.innerHTML;
-    var playlistID = obj.name;
-    var playlistSongs = jQuery.parseJSON(playlistSongs);
-    if ((typeof playlistSongs == 'undefined') || (playlistSongs.length == 0)) {
-        jQuery(obj).parent().parent().after('<tr class="revealed-' + playlistID + ' playlistRevealedSong"><td></td><td></td><td><pre>An unexpected error occurred while loading your playlist. Contact the author for support.</pre></td></tr>');
-        jQuery(obj).attr('class', 'gsHide');
-        jQuery(obj).attr('title', 'Hide All Songs In This Playlist');
-        jQuery(obj).removeAttr('onclick');
-        jQuery(obj).unbind('click');
-        jQuery(obj).click(function() {hidePlaylistSongs(obj.name, obj);});
-        setTimeout(function() {jQuery(obj).click(); jQuery(obj).click(function() {showPlaylistSongs(obj);});}, 5000);
-        return;
-    }
-    // Set up needed variables
-    var appendRow = jQuery(obj).parent().parent();
-    var isVersion26 = jQuery('#gsDataStore').data('gsDataStore').isVersion26;
-    // Different string lengths allowed for wordpress versions 2.6 and under
-    var stringLimit = isVersion26 ? 71 : 78;
-    // Different alt row styling for wordpress versions 2.6 and under
-    var altClass = isVersion26 ? 'gsTr26' : 'gsTr27';
-    // Different pre styling for wordpress versions 2.6 and under
-    var preClass = isVersion26 ? 'gsPreSingle26' : 'gsPreSingle27';
-    // Prepare the new song content
-    var newSongContent = '';
-    var count = 0;
-    for (var i = 0; i < playlistSongs.length; i++) {
-        // Get all relevant song information
-        var songName = playlistSongs[i].songName;
-        var artistName = playlistSongs[i].artistName;
-        var songNameComplete = songName + " by " + artistName;
-        if (songNameComplete.length > stringLimit) {
-            songNameComplete = songName.substring(0,stringLimit - 3 - artistName.length) + "&hellip;" + " by " + artistName;
-        }
-        var songID = playlistSongs[i].songID;
-        if (songNameComplete && songID) {
-            // If song information is returned
-            var newSongRow = "<tr class='" + (count % 2 ? altClass : 'gsTr1') + " revealed-" + playlistID + " playlistRevealedSong'><td class='gsTableButton'><a title='Add This Song To Your Post' class='gsAdd' name='" + songNameComplete + "::" + songID + "' onclick='addToSelected(this.name);' style='cursor:pointer'></a></td><td class='gsTableButton'><a title='Play This Song' class='gsPlay' name='" + songID + "' onclick='toggleStatus(this);' style='cursor:pointer'></a></td><td><pre class='" + preClass + "'>" + songNameComplete + "</pre></td></tr>";
-            // Make the new row draggable
-            newSongContent += newSongRow;
-            count++;
-        }
-    }
-    if (newSongContent.length > 0) {
-        appendRow.after(newSongContent);
-        jQuery(obj).attr('class', 'gsHide');
-        jQuery(obj).attr('title', 'Hide All Songs In This Playlist');
-        jQuery(obj).removeAttr('onclick');
-        jQuery(obj).unbind('click');
-        jQuery(obj).click(function() {hidePlaylistSongs(obj.name, obj);});
-    }
-}
-
-function hidePlaylistSongs(playlistID, obj) {
-    jQuery(obj).parent().parent().parent().find('.revealed-'+playlistID).fadeOut('slow', function() {jQuery(this).remove();});
-    jQuery(obj).attr('class', 'gsShow');
-    jQuery(obj).attr('title', 'Show All Songs In This Playlist');
-    jQuery(obj).removeAttr('onclick');
-    jQuery(obj).unbind('click');
-    jQuery(obj).click(function() {showPlaylistSongs(obj.name, obj);});
-}
 
 //Handles unselecting a song for addition.
 function removeFromSelected(element) {
     // Just remove the song's row, adjust widget height as necessary, and update selected song count
-    jQuery(element).parent().parent().remove();
-    if (document.getElementById('widgetHeight') != null) {
-        if (document.getElementById('widgetHeight').value > 176 && jQuery('#gsDataStore').data('gsDataStore').savedHeight == false) {
-            document.getElementById('widgetHeight').value = parseInt(document.getElementById('widgetHeight').value) - 22;
-        }
+    jQuery(element.parentNode.parentNode).remove();
+    if ((!!document.getElementById('widgetHeight')) && ((+document.getElementById('widgetHeight').value) > 176)) {
+        document.getElementById('widgetHeight').value = (+document.getElementById('widgetHeight').value) - 22;
     }
     jQuery('#selected-songs-table tr:odd').attr('class', 'gsTr1');
     jQuery('#selected-songs-table tr:even').attr('class', jQuery('#gsDataStore').data('gsDataStore').isVersion26 ? 'gsTr26' : 'gsTr27');
     updateCount();
 }
 
+
 //Clears all songs that are selected for addition.
 function clearSelected() {
     jQuery('#selected-songs-table').empty();
     document.getElementById("selectedCount").innerHTML = "Selected Songs (0):"
-    if (((jQuery('#gsDataStore').data('gsDataStore').savedHeight == false) && (document.getElementById('widgetHeight') != null))) {
+    if (!!document.getElementById('widgetHeight')) {
         document.getElementById('widgetHeight').value = 176;
     }
 }
 
+
 //Only needed because the addToSelectedPlaylist function for some reason does not update the selected count on its own.
 function updateCount() {
     var selectedCount = document.getElementById("selectedCount");
-    selectedCountValue = jQuery('#selected-songs-table tr').length;
+    selectedCountValue = jQuery('#selected-songs-table')[0].rows.length;
     selectedCount.innerHTML = "Selected Songs (" + selectedCountValue + "):";
     if (selectedCountValue > 0) {
         document.getElementById("selected-songs-table").className = 'gsSelectedPopulated';
     } else {
         document.getElementById("selected-songs-table").className = 'gsSelectedEmpty';
-    }
-}
-
-//Change the example display phrase to reflect what the user typed in.
-function changeExample(obj) {
-    document.getElementById('displayPhraseExample').innerHTML = 'Example: "' + obj.value + ': song by artist"';
-}
-
-//Change the example playlist name to reflect what the user typed in.
-function changeExamplePlaylist(obj) {
-    document.getElementById('displayPhrasePlaylistExample').innerHTML = 'Example: "Grooveshark: ' + obj.value + '"';
-}
-
-
-//Toggles whether appearance is shown or hidden (presumably once a user sets the widget/link appearance, they would use that appearance for a while)
-function gsToggleAppearance(){
-    if(document.getElementById('gsAppearance').className == 'gsAppearanceHidden'){
-      document.getElementById('gsAppearance').className = 'gsAppearanceShown';
-      document.getElementById('jsLink').innerHTML = "&rarr; Appearance";
-    }else{
-      document.getElementById('gsAppearance').className = 'gsAppearanceHidden';
-      document.getElementById('jsLink').innerHTML = "&darr; Appearance";
     }
 }
 
@@ -422,359 +229,302 @@ function gsAppendToComment(obj) {
     if (songsArray.length > 0) {
         obj.value = 'Saving...';
         obj.disabled = true;
-        var songString = songsArray[0].value;
-        for (var i = 1; i < songsArray.length; i++) {
-            songString += ":" + songsArray[i].value;
+        // Needs to have a mechanism for displaying playlist links, without actually creating the playlists...
+        // Pull up the following: #gsCommentPlaylistName, #gsCommentDisplayPhrase
+        var songIDs = [];
+        var songCount = 0;
+        var songLimit = document.getElementById('gsCommentSongLimit').value;
+        if (songLimit == 0) {
+            songLimit = 99999;
+        }
+        var arrayLength = songsArray.length;
+        for (var i = 0; i < arrayLength; i++) {
+            if (songCount < songLimit) {
+                songIDs[i] = songsArray[i].value;
+            }
+            songCount++;
         }
         var widgetHeight = document.getElementById('widgetHeight').value;
         widgetHeight = (widgetHeight < 1000) ? widgetHeight : 1000;
-        jQuery.post(document.getElementById('gsBlogUrl').value + '/wp-content/plugins/grooveshark/gsComment.php', {songString: songString, widgetHeight: widgetHeight, sessionID: document.getElementById('gsSessionID').value}, function(returnedData) {
-            if (document.getElementById('comment') != null) {
-                document.getElementById('comment').value += returnedData;
-            }
-            obj.value = 'Save Music';
-            obj.disabled = false;
-        });
-    }
-}
+        if (document.getElementById('gsCommentHeight').value != 0) {
+            widgetHeight = document.getElementById('gsCommentHeight').value;
+        }
+        var widgetWidth = document.getElementById('gsCommentWidth').value;
+        var displayOption = document.getElementById('gsCommentDisplayOption').value; // either link or widget
+        var colorScheme = document.getElementById('gsCommentColorScheme').value;
+        var colorArray = getBackgroundHex(colorScheme);
+        var songContent = '';
+        if (songIDs.length == 1) {
+            //single song
+            if (displayOption == 'widget') {
+                songContent = getSingleGSWidget(songIDs[0], widgetWidth);
+            } else {
+                var name = $('#gsSong-' + songIDs[0]).attr('name');
+                var songNameComplete = name.split('::')[0];
+                var songName = songNameComplete.split(' by ')[0];
+                var displayPhrase = document.getElementById('gsCommentDisplayPhrase').value;
 
-
-//Handles appending a widget/link to the post content.
-function gsAppendToContent(obj) {
-    //songsArray = document.getElementsByName('songsInfoArray[]');
-    var songsArray = jQuery("input.songsInfoArrayClass");
-    if (songsArray.length > 0) {
-        obj.value = 'Saving...';
-        obj.disabled = true;
-        var songString = songsArray[0].value;
-        for (var i = 1; i < songsArray.length; i++) {
-            songString += ":" + songsArray[i].value;
-        }
-        var displayOptions = document.getElementsByName("displayChoice");
-        var displayOption = displayOptions[1].checked ? 1 : 0;
-        var sidebarOptions = document.getElementsByName("sidebarChoice");
-        var sidebarOption = sidebarOptions[0].checked ? 1 : 0;
-        var dashboardOptions = document.getElementsByName("dashboardChoice");
-        var dashboardOption = dashboardOptions[0].checked ? 1 : 0;
-        var widgetWidth = document.getElementById('widgetWidth').value;
-        var widgetHeight = document.getElementById('widgetHeight').value;
-        if (widgetWidth < 150) {
-            widgetWidth = 150;
-        }
-        if (widgetHeight < 150) {
-            widgetHeight = 150;
-        }
-        if (widgetWidth > 1000) {
-            widgetWidth = 1000;
-        }
-        if (widgetHeight > 1000) {
-            widgetHeight = 1000;
-        }
-        document.getElementById('widgetWidth').value = widgetWidth;
-        document.getElementById('widgetHeight').value = widgetHeight;
-        var positionBeginning = document.getElementById('gsPosition').checked ? true : false;
-        var colorScheme = document.getElementById('colors-select').value;
-        var displayPhrase = document.getElementById('displayPhrase').value;
-        var playlistName = document.getElementById('playlistsName').value;
-        jQuery.post(document.getElementById('gsBlogUrl').value + '/wp-content/plugins/grooveshark/gsPost.php', {songString: songString, displayOption: displayOption, sidebarOption: sidebarOption, dashboardOption: dashboardOption, widgetWidth: widgetWidth, widgetHeight: widgetHeight, colorsSelect: colorScheme, displayPhrase: displayPhrase, playlistsName: playlistName, sessionID: document.getElementById('gsSessionID').value}, function(returnedData) {
-            if (!jQuery('#gsDataStore').data('gsDataStore').isVersion26) {
-                if (typeof(switchEditors) != 'undefined') {
-                    if (switchEditors.go() != null) {
-                        switchEditors.go('content','html');
-                    }
-                }
-            }
-            if (document.getElementById('content') != null) {
-                if (document.getElementById('gsTagStatus').value == 1) {
-                    document.getElementById('content').value = gsReplaceTag(document.getElementById('content').value, returnedData);
-                } else {
-                    if (positionBeginning) {
-                        document.getElementById('content').value = returnedData + document.getElementById('content').value;
+                jQuery.post(document.getElementById('gsBlogUrl').value + '/wp-content/plugins/grooveshark/gsGetSongLink.php', {songID: songIDs[0]}, function(returnedData) {
+                    songContent = "<a target=_blank' href='" + returnedData + "'>" + displayPhrase + ": " + songNameComplete + "</a>";
+                    if (!!document.getElementById('comment')) {
+                        document.getElementById('comment').value += songContent;
                     } else {
-                        document.getElementById('content').value += returnedData;
-                    }
-                }
-                document.getElementById('autosaveMusic').value = 0;
-            }
-            if (document.getElementById('comment') != null) {
-                document.getElementById('comment').value += returnedData;
-            }
-            if (document.getElementById('content_ifr') != null) {
-                if (document.getElementById('content_ifr').contentDocument != null) {
-                    contentIframe = document.getElementById('content_ifr').contentDocument;
-                    if (contentIframe.getElementsByTagName('p')[0] != null) {
-                        if (document.getElementById('gsTagStatus').value == 1) {
-                            contentIframe.getElementsByTagName('p')[0].innerHTML = gsReplaceTag(contentIframe.getElementsByTagName('p')[0].innerHTML, returnedData);
-                        } else {
-                            if (positionBeginning) {
-                                contentIframe.getElementsByTagName('p')[0].innerHTML = returnedData + contentIframe.getElementsByTagName('p')[0].innerHTML;
-                            } else {
-                                contentIframe.getElementsByTagName('p')[0].innerHTML += returnedData;
-                            }
+                        // Some themes move the comment value from id to name
+                        var comment = jQuery("textarea[name='comment']");
+                        if (comment.length) {
+                            comment.val(comment.val() + songContent);
                         }
-                        document.getElementById('autosaveMusic').value = 0;
                     }
-                }
+                    obj.value = 'Save Music';
+                    obj.disabled = false;
+                    var gsStatusMessage = jQuery('#gsCommentStatusMessage');
+                    gsStatusMessage.show().html('Your music is in your comment.');
+                    setTimeout(function() {gsStatusMessage.fadeOut(3000, function() {gsStatusMessage.html('');});}, 3000);
+                });
+                return;
             }
-            //mce_editor only from wordpress versions below 2.6
-            if (document.getElementById('mce_editor_0') != null) {
-                if (document.getElementById('gsTagStatus').value == 1) {
-                    document.getElementById('mce_editor_0').contentDocument.body.innerHTML = gsReplaceTag(document.getElementById('mce_editor_0').contentDocument.body.innerHTML, returnedData);
-                } else {
-                    if (positionBeginning) {
-                        document.getElementById('mce_editor_0').contentDocument.body.innerHTML = returnedData + document.getElementById('mce_editor_0').contentDocument.body.innerHTML;
-                    } else {
-                        document.getElementById('mce_editor_0').contentDocument.body.innerHTML += returnedData;
-                    }
-                }
-                document.getElementById('autosaveMusic').value = 0;
+        } else {
+            if (displayOption == 'widget') {
+                songContent = getPlaylistGSWidget(songIDs, widgetWidth, widgetHeight, colorArray[1], colorArray[0], colorArray[0], colorArray[2], colorArray[1], colorArray[0], colorArray[2], colorArray[1], colorArray[1], colorArray[0], colorArray[2], colorArray[1], colorArray[1], colorArray[2], colorArray[1]);
+                
+            } else {
+                // People should not be able to link to multiple songs in the comments section, alert them about this
+                alert('You currently can only add one songs to your comments. Please remove the extra songs and try again.');
+                obj.value = 'Save Music';
+                obj.disabled = false;
+                return;
             }
-            document.getElementById('gsTagStatus').value = 0;
-            if (document.getElementById('ed_grooveshark') != null) {
-                document.getElementById('ed_grooveshark').disabled = false;
-                document.getElementById('ed_grooveshark').title = 'Place your music';
+        }
+        if (!!document.getElementById('comment')) {
+            document.getElementById('comment').value += songContent;
+        } else {
+            // Some themes move the comment value from id to name
+            var comment = jQuery("textarea[name='comment']");
+            if (comment.length) {
+                comment.val(comment.val() + songContent);
             }
-            if (document.getElementById('content_grooveshark') != null) {
-                document.getElementById('content_grooveshark').onclick = function() {insertGroovesharkTag();};
-                document.getElementById('content_grooveshark').title = 'Place your music';
-            }
-            obj.value = 'Save Music';
-            obj.disabled = false;
-            if (!jQuery('#gsDataStore').data('gsDataStore').isVersion26) {
-                if (typeof(switchEditors) != 'undefined') {
-                    if (switchEditors.go() != null) {
-                        switchEditors.go('content','tinymce');
-                    }
-                }
-            }
-        });
+        }
+        obj.value = 'Save Music';
+        obj.disabled = false;
+        var gsStatusMessage = jQuery('#gsCommentStatusMessage');
+        gsStatusMessage.show().html('Your music is in your comment.');
+        setTimeout(function() {gsStatusMessage.fadeOut(3000, function() {gsStatusMessage.html('');});}, 3000);
     }
 }
 
-function gsReplaceTag(postContent, embedCode) {
-    //takes post content, looks for a [[grooveshark]] tag, and replaces with embed code 
-    if (postContent.indexOf('[[grooveshark]]') != -1) {
-        postContentArray = postContent.split(/\[\[grooveshark\]\]/);
-        postContent = postContentArray[0] + embedCode + postContentArray[1];
-    }
-    return postContent;
+function getSingleGSWidget(songID, width) {
+    return getGSWidgetEmbedCode('songWidget.swf', width, 40, [songID], 0, '');
 }
 
-function changeAppearanceOption(appearanceOption) {
-    switch (appearanceOption) {
-        case 'link':
-            jQuery('#gsDisplayLink').show();
-            jQuery('#gsDisplayWidget').hide();
-            break;
-        case 'widget':
-            jQuery('#gsDisplayWidget').show();
-            jQuery('#gsDisplayLink').hide();
-            break;
-    }
-}
-//Toggles whether the user is shown the search, their favorites, or their playlists.
-function gsToggleSongSelect(myRow){
-    var isVersion26 = jQuery('#gsDataStore').data('gsDataStore').isVersion26;
-    var tabClass = isVersion26 ? 'gsTabActive26' : 'gsTabActive27';
-    var tabClass2 = isVersion26 ? 'gsTabInactive26' : 'gsTabInactive27';
-    var isQueryEmpty = (jQuery('#queryResult').html() == '');
-    switch (myRow) {
-        case 'Search':
-            jQuery('#playlists-option').attr('class', tabClass2);
-            jQuery('#songs-playlists').hide();
-            jQuery('#favorites-option').attr('class', tabClass2);
-            jQuery('#songs-favorites').hide();
-            jQuery('#search-option').attr('class', tabClass);
-            jQuery('#songs-search').show();
-            if (!isQueryEmpty) {
-                jQuery('#search-results-container').show();
-            }
-            break;
-
-        case 'Favorites':
-            jQuery('#playlists-option').attr('class', tabClass2);
-            jQuery('#songs-playlists').hide();
-            jQuery('#search-option').attr('class', tabClass2);
-            jQuery('#songs-search').hide();
-            jQuery('#search-results-container').hide();
-            jQuery('#favorites-option').attr('class', tabClass);
-            jQuery('#songs-favorites').show();
-            break;
-
-        case 'Playlists':
-            jQuery('#favorites-option').attr('class', tabClass2);
-            jQuery('#songs-favorites').hide();
-            jQuery('#search-option').attr('class', tabClass2);
-            jQuery('#songs-search').hide();
-            jQuery('#search-results-container').hide();
-            jQuery('#playlists-option').attr('class', tabClass);
-            jQuery('#songs-playlists').show();
-            break;
-
-        default:
-            break;
-    }
+function getSingleApWidget(songID) {
+    return getGSWidgetEmbedCode('songWidget.swf', 1, 1, [songID], 1, '');
 }
 
-//Change the base, primary, and secondary colors to show the user what colors a given color scheme uses.
-function changeColor(obj) {
-    if(!obj) {
-        return false;
-    }
-    curValue = obj.options[obj.selectedIndex].value;
-    baseColor = document.getElementById('base-color');
-    primaryColor = document.getElementById('primary-color');
-    secondaryColor = document.getElementById('secondary-color');
-    curValue = parseInt(curValue);
-    var colorArray = getBackgroundRGB(curValue);
-    baseColor.style.backgroundColor = colorArray[0];
-    primaryColor.style.backgroundColor = colorArray[1];
-    secondaryColor.style.backgroundColor = colorArray[2];
+function getPlaylistGSWidget(songIDs, width, height, bt, bth, bbg, bfg, pbg, pfg, pbgh, pfgh, lbg, lfg, lbgh, lfgh, sb, sbh, si) {
+    var colors = ['&amp;bt=', bt, '&amp;bth=', bth, '&amp;bbg=', bbg, '&amp;bfg=', bfg, '&amp;pbg=', pbg, '&amp;pfg=', pfg, '&amp;pbgh=', pbgh, '&amp;pfgh=', pfgh, '&amp;lbg=', lbg, '&amp;lfg=', lfg, '&amp;lbgh=', lbgh, '&amp;lfgh=', lfgh, '&amp;sb=', sb, '&amp;sbh=', sbh, '&amp;si=', si].join('');
+    return getGSWidgetEmbedCode('widget.swf', width, height, songIDs, 0, colors);
 }
 
-function changeSidebarColor(obj) {
-    if (!obj) {
-        return false;
+function getGSWidgetEmbedCode(swfName, width, height, songIDs, ap, colors) {
+    var songIDString = '';
+    if (songIDs.length == 1) {
+        songIDString = 'songID=' + songIDs[0];
+    } else {
+        songIDString = 'songIDs=' + songIDs.join();
     }
-    var curValue = parseInt(obj.options[obj.selectedIndex].value);
-    var context = jQuery(obj).parent().parent().parent();
-    var baseColor = jQuery('#widget-base-color', context);
-    var primaryColor = jQuery('#widget-primary-color', context);
-    var secondaryColor = jQuery('#widget-secondary-color', context);
-    var colorArray = getBackgroundRGB(curValue);
-    baseColor[0].style.backgroundColor = colorArray[0];
-    primaryColor[0].style.backgroundColor = colorArray[1];
-    secondaryColor[0].style.backgroundColor = colorArray[2];
+    var ap = (+ap != 0) ? '&amp;p=' + ap : '';
+    var embed = ["<object width='", width, "' height='", height, "'>",
+                     "<param name='movie' value='http://listen.grooveshark.com/", swfName, "'></param>",
+                     "<param name='wmode' value='window'></param>",
+                     "<param name='allowScriptAccess' value='always'></param>",
+                     "<param name='flashvars' value='hostname=cowbell.grooveshark.com&amp;", songIDString, ap, colors, "'></param>",
+                     "<embed src='http://listen.grooveshark.com/", swfName, "' type='application/x-shockwave-flash' width='", width, "' height='", height, "' flashvars='hostname=cowbell.grooveshark.com&amp;", songIDString, ap, colors, "' allowScriptAccess='always' wmode='window'></embed>",
+                "</object>"].join('');
+    return embed;
 }
 
-function getBackgroundRGB(colorSchemeID) {
+function getBackgroundHex(colorSchemeID) {
     var colorArray = new Array();
-    switch (colorSchemeID) {
+    switch (+colorSchemeID) {
         case 0:
-            colorArray[0] = 'rgb(0,0,0)';
-            colorArray[1] = 'rgb(255,255,255)';
-            colorArray[2] = 'rgb(102,102,102)';
+            colorArray[0] = '000000';
+            colorArray[1] = 'FFFFFF';
+            colorArray[2] = '666666';
         break;
 
         case 1:
-            colorArray[0] = 'rgb(204,162,12)';
-            colorArray[1] = 'rgb(77,34,28)';
-            colorArray[2] = 'rgb(204,124,12)';
+            colorArray[0] = 'CCA20C';
+            colorArray[1] = '4D221C';
+            colorArray[2] = 'CC7C0C';
         break;
 
         case 2:
-            colorArray[0] = 'rgb(135,255,0)';
-            colorArray[1] = 'rgb(0,136,255)';
-            colorArray[2] = 'rgb(255,0,84)';
+            colorArray[0] = '87FF00';
+            colorArray[1] = '0088FF';
+            colorArray[2] = 'FF0054';
         break;
 
         case 3:
-            colorArray[0] = 'rgb(255,237,144)';
-            colorArray[1] = 'rgb(53,150,104)';
-            colorArray[2] = 'rgb(168,212,111)';
+            colorArray[0] = 'FFED90';
+            colorArray[1] = '359668';
+            colorArray[2] = 'A8D46F';
         break;
 
         case 4:
-            colorArray[0] = 'rgb(224,228,204)';
-            colorArray[1] = 'rgb(243,134,48)';
-            colorArray[2] = 'rgb(167,219,216)';
+            colorArray[0] = 'F0E4CC';
+            colorArray[1] = 'F38630';
+            colorArray[2] = 'A7DBD8';
         break;
 
         case 5:
-            colorArray[0] = 'rgb(255,255,255)';
-            colorArray[1] = 'rgb(55,125,159)';
-            colorArray[2] = 'rgb(246,214,31)';
+            colorArray[0] = 'FFFFFF';
+            colorArray[1] = '377D9F'
+            colorArray[2] = 'F6D61F';
         break;
 
         case 6:
-            colorArray[0] = 'rgb(69,5,18)';
-            colorArray[1] = 'rgb(217,24,62)';
-            colorArray[2] = 'rgb(138,7,33)';
+            colorArray[0] = '450512';
+            colorArray[1] = 'D9183D';
+            colorArray[2] = '8A0721';
         break;
 
         case 7:
-            colorArray[0] = 'rgb(180,213,218)';
-            colorArray[1] = 'rgb(129,59,69)';
-            colorArray[2] = 'rgb(177,186,191)';
+            colorArray[0] = 'B4D5DA';
+            colorArray[1] = '813B45';
+            colorArray[2] = 'B1BABF';
         break;
 
         case 8:
-            colorArray[0] = 'rgb(232,218,94)';
-            colorArray[1] = 'rgb(255,71,70)';
-            colorArray[2] = 'rgb(255,255,255)';
+            colorArray[0] = 'E8DA5E';
+            colorArray[1] = 'FF4746';
+            colorArray[2] = 'FFFFFF';
         break;
 
         case 9:
-            colorArray[0] = 'rgb(153,57,55)';
-            colorArray[1] = 'rgb(90,163,160)';
-            colorArray[2] = 'rgb(184,18,7)';
+            colorArray[0] = '993937';
+            colorArray[1] = '5AA3A0';
+            colorArray[2] = 'B81207';
         break;
 
         case 10:
-            colorArray[0] = 'rgb(255,255,255)';
-            colorArray[1] = 'rgb(0,150,9)';
-            colorArray[2] = 'rgb(233,255,36)';
+            colorArray[0] = 'FFFFFF';
+            colorArray[1] = '009609';
+            colorArray[2] = 'E9FF24';
         break;
 
         case 11:
-            colorArray[0] = 'rgb(255,255,255)';
-            colorArray[1] = 'rgb(122,122,122)';
-            colorArray[2] = 'rgb(214,214,214)';
+            colorArray[0] = 'FFFFFF';
+            colorArray[1] = '7A7A7A';
+            colorArray[2] = 'D6D6D6';
         break;
 
         case 12:
-            colorArray[0] = 'rgb(255,255,255)';
-            colorArray[1] = 'rgb(215,8,96)';
-            colorArray[2] = 'rgb(154,154,154)';
+            colorArray[0] = 'FFFFFF';
+            colorArray[1] = 'D70860';
+            colorArray[2] = '9A9A9A';
         break;
 
         case 13:
-            colorArray[0] = 'rgb(0,0,0)';
-            colorArray[1] = 'rgb(255,255,255)';
-            colorArray[2] = 'rgb(98,11,179)';
+            colorArray[0] = '000000';
+            colorArray[1] = 'FFFFFF';
+            colorArray[2] = '620BB3';
         break;
 
         case 14:
-            colorArray[0] = 'rgb(75,49,32)';
-            colorArray[1] = 'rgb(166,152,77)';
-            colorArray[2] = 'rgb(113,102,39)';
+            colorArray[0] = '4B3120';
+            colorArray[1] = 'A6984D';
+            colorArray[2] = '716627';
         break;
 
         case 15:
-            colorArray[0] = 'rgb(241,206,9)';
-            colorArray[1] = 'rgb(0,0,0)';
-            colorArray[2] = 'rgb(255,255,255)';
+            colorArray[0] = 'F1CE09';
+            colorArray[1] = '000000';
+            colorArray[2] = 'FFFFFF';
         break;
 
         case 16:
-            colorArray[0] = 'rgb(255,189,189)';
-            colorArray[1] = 'rgb(221,17,34)';
-            colorArray[2] = 'rgb(255,163,163)';
+            colorArray[0] = 'FFBDBD';
+            colorArray[1] = 'DD1122';
+            colorArray[2] = 'FFA3A3';
         break;
 
         case 17:
-            colorArray[0] = 'rgb(224,218,74)';
-            colorArray[1] = 'rgb(255,255,255)';
-            colorArray[2] = 'rgb(249,255,52)';
+            colorArray[0] = 'E0DA4A';
+            colorArray[1] = 'FFFFFF';
+            colorArray[2] = 'F9FF34';
         break;
 
         case 18:
-            colorArray[0] = 'rgb(87,157,214)';
-            colorArray[1] = 'rgb(205,35,31)';
-            colorArray[2] = 'rgb(116,191,67)';
+            colorArray[0] = '579DD6';
+            colorArray[1] = 'CD231F';
+            colorArray[2] = '74BF43';
         break;
 
         case 19:
-            colorArray[0] = 'rgb(178,194,230)';
-            colorArray[1] = 'rgb(1,44,95)';
-            colorArray[2] = 'rgb(251,245,211)';
+            colorArray[0] = 'B2C2E6';
+            colorArray[1] = '012C5F';
+            colorArray[2] = 'FBF5D3';
         break;
 
         case 20:
-            colorArray[0] = 'rgb(96,54,42)';
-            colorArray[1] = 'rgb(232,194,142)';
-            colorArray[2] = 'rgb(72,46,36)';
+            colorArray[0] = '60362A';
+            colorArray[1] = 'E8C28E';
+            colorArray[2] = '482E24';
+        break;
+
+        default:
+            colorArray[0] = '000000';
+            colorArray[1] = 'FFFFFF';
+            colorArray[2] = '666666';
         break;
     }
     return colorArray;
+}
+
+// Player callback and helper functions
+
+function toggleSong(currentPlayed) {
+    if (!currentPlayed.name) {
+        return false;
+    }
+    var songID = currentPlayed.name
+    // Toggle the status for a song (play, pause, new song)
+    var gsDataStore = jQuery('#gsDataStore').data('gsDataStore');
+    var sessionID = document.getElementById('gsSessionID').value;
+    var wpurl = document.getElementById('gsBlogUrl').value;
+    var lastPlayed = gsDataStore.lastPlayed;
+    if (typeof lastPlayed == 'boolean') {
+        // initial song play
+        gsDataStore.lastPlayed = lastPlayed = currentPlayed;
+    } else {
+        if (lastPlayed.name != currentPlayed.name) {
+            // new song play
+            var widgetEmbed = getSingleApWidget(songID);
+            jQuery('#apContainer').empty().html(widgetEmbed);
+            lastPlayed.className = 'gsPlay';
+            currentPlayed.className = 'gsPause';
+            gsDataStore.lastPlayed = currentPlayed;
+            return;
+        }
+    }
+    if (lastPlayed.parentNode.parentNode.parentNode.parentNode.id != currentPlayed.parentNode.parentNode.parentNode.parentNode.id) {
+        // same song play, different play button
+        lastPlayed.className = 'gsPlay';
+        currentPlayed.className = 'gsPause';
+        gsDataStore.lastPlayed = currentPlayed;
+        return;
+    }
+    if (currentPlayed.className.indexOf('gsPlay') != -1) {
+        // Play the song
+        var widgetEmbed = getSingleApWidget(songID);
+        jQuery('#apContainer').empty().html(widgetEmbed);
+        currentPlayed.className = 'gsPause';
+    } else {
+        if (currentPlayed.className.indexOf('gsPause') != -1) {
+            // stop the song
+            currentPlayed.className = 'gsPlay';
+            jQuery('#apContainer').empty();
+        }
+    }
+    return false;
 }

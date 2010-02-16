@@ -168,6 +168,10 @@
 	width:60px !important;
 }
 
+#gsSearchButton {
+        width:60px !important;
+}
+
 #gs-query {
     width: 100% !important;
 }
@@ -262,6 +266,17 @@
 .gsTr26 {
     background-color: #EAF3FA !important;
 }
+.gsTr26 td, .gsTr27 td {
+    padding:5px 0 5px 0 !important!
+    border:0 none !important;
+    margin:0 !important;
+    font-family:"Lucida Grande",Verdana,Arial,"Bitstream Vera Sans",sans-serif !important;
+    font-size:11px !important;
+}
+.gsTableButton {
+    font-size:0px !important;
+}
+    
 
 /*
 .gsTr1:hover, .gsTr27:hover, .gsTr26:hover {
@@ -292,6 +307,7 @@
 	width:20px;
 	height:24px;
 	background:url(../images/play.png) no-repeat 4px 6px;
+        font-size:0px !important;
 }
 
 .gsLoading {
@@ -299,6 +315,7 @@
 	width:20px;
 	height:24px;
 	background:url(../images/loading.gif) no-repeat 4px 6px;
+        font-size:0px !important;
 }
 
 .gsPause {
@@ -306,6 +323,7 @@
 	width:20px;
 	height:24px;
 	background:url(../images/stop.png) no-repeat 4px 6px;
+        font-size:0px !important;
 }
 
 .gsAdd {
@@ -313,6 +331,7 @@
 	width:20px;
 	height:24px;
 	background:url(../images/add.png) no-repeat 4px 6px;
+        font-size:0px !important;
 }
 
 .gsRemove {
@@ -320,6 +339,7 @@
 	width:20px;
 	height:24px;
 	background:url(../images/remove.png) no-repeat 4px 6px;
+        font-size:0px !important;
 }
 
 .gsNote {
@@ -327,6 +347,7 @@
     width: 20px !important;
     height: 20px !important;
     background:url(../images/note.png) no-repeat center !important;
+    font-size:0px !important;
 }
 
 .gsShow {
@@ -334,6 +355,7 @@
     width:20px;
     height:24px;
     background:url(../images/show.png) no-repeat 4px 6px;
+    font-size:0px !important;
 }
 
 .gsHide {
@@ -341,6 +363,7 @@
     width:20px;
     height:24px;
     background: #FEE url(../images/hide.png) no-repeat 4px 6px;
+    font-size:0px !important;
 }
 
 .gsPlaylistButton {
@@ -371,25 +394,6 @@
     background-color: #FEE !important;
 }
 
-/*
- The elements containing song and playlist names
- */
-
-.gsPreSingle27, .gsPreSingle26, .gsPrePlaylist27, .gsPrePlaylist26 {
-    border: 0 none !important;
-    margin: 0 !important;
-    padding: 5px 0 5px 0 !important;
-}
-
-.gsPreSingle26,.gsPreSingle27 {
-	font-family:"Lucida Grande",Verdana,Arial,"Bitstream Vera Sans",sans-serif !important;
-	font-size:11px !important;
-}
-
-.gsPrePlaylist26,.gsPrePlaylist27 {
-	font-family:"Lucida Grande",Verdana,Arial,"Bitstream Vera Sans",sans-serif !important;
-	font-size:11px !important;
-}
 
 /*
  Header for Selected Songs
@@ -573,6 +577,10 @@
 	width:100% !important;
 }
 
+#selected-songs-table tr {
+        cursor: move;
+}
+
 .gsSongBox26 #selected-songs-table {
 	border:1px solid #CEE1EF !important;
 }
@@ -580,25 +588,6 @@
 #selected-songs-table pre {
 	font-family:"Lucida Grande",Verdana,Arial,"Bitstream Vera Sans",sans-serif !important;
 	font-size:11px !important;
-}
-
-/*
- * Styling for the comment box
- */
-.gsAppendToComment {
-    width: 80px !important;
-    text-shadow: 0 1px 0 #fff;
-    background: #21759b none repeat-x scroll left top;
-    border-color: #298cba !important;
-    color: #fff !important;
-    font-weight: bold;
-    font-size: 11px !important;
-    cursor: pointer;
-    padding:2px 8px;
-    -moz-border-radius-bottomleft: 11px;
-    -moz-border-radius-bottomright: 11px;
-    -moz-border-radius-topleft: 11px;
-    -moz-border-radius-topright: 11px;
 }
 
 /*
