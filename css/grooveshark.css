@@ -137,7 +137,7 @@
 }
 
 .gsSongBox26 {
-    border-color: #CEE1EF !important;	
+    border: 1px solid #CEE1EF !important;	
 }
 
 /*
@@ -165,11 +165,10 @@
 
 #searchButton {
 	float:right !important;
-	width:60px !important;
 }
 
 #gsSearchButton {
-        width:60px !important;
+        width:40px !important;
 }
 
 #gs-query {
@@ -198,6 +197,19 @@
 
 .gsSongBox26 #queryResult {
 	margin-top:5px !important;
+}
+
+.groovesharkHeader {
+    margin: 0 0 0 2px !important;
+    padding: 0 !important;
+    font-size: 1.5em !important;
+    border: 0 none !important;
+    color:#464646 !important;
+    font-family:Georgia,"Times New Roman","Bitstream Charter",Times,serif;
+    font-style:italic;
+    font-weight:normal;
+    line-height:35px;
+    text-shadow:0 1px 0 #FFFFFF;
 }
 
 /*
@@ -464,11 +476,12 @@
     display: block !important;
 }
 
-#playlistAppearance {
+#playlistAppearance, #singleAppearance {
     margin: 0 0 0 2px !important;
     font-size: 1.5em !important;
     padding: 0 !important;
     border: 0 none !important;
+    clear: both !important;
 }
 
 #gsAppearanceHead {
@@ -515,7 +528,7 @@
  The select input for the Grooveshark Widgets preset color schemes
  */
 
-#colors-select {
+#colors-select, #widgetTheme {
     width: 185px !important;
 }
 
@@ -531,9 +544,11 @@
 }
 
 #gsWidgetExample {
+/*
 	background:url(../screenshot-3.jpg) no-repeat;
 	width:258px;
 	height:310px;
+        */
 	margin:10px 0 10px 130px;
 }
 

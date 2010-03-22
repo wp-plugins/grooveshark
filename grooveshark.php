@@ -26,6 +26,17 @@ Copyright 2009 Escape Media Group (email: roberto.sanchez@escapemg.com)
 */
 
 require_once 'GSAPI.php';
+function gs_json_encode($content) {
+    if (!extension_loaded('json')) {
+        if (!class_exists('GS_Services_JSON')) {
+            require_once('GSJSON.php');
+        }
+        $json = new GS_Services_JSON;
+        return $json->encode($content);
+    } else {
+        return json_encode($content);
+    }
+}
 
 
 // Checks to see if the options for this plugin exists. If not, the options are added
@@ -171,7 +182,7 @@ function groovesharkBox()
             <div id='searchButton'>
                 <input tabindex='101' type='button' name='editPage-1' id='gsSearchButton' value='Search' class='button gsMainButton'/>
             </div>
-            <div class='clear' style='height:0;' /></div>
+            <div class='clear' style='height:0;'></div>
 	</div>
 	<div class='clear' style='height:0'></div>
 	<div id='search-results-container' class='$versionClass' style='display:none;'>
@@ -187,7 +198,7 @@ function groovesharkBox()
     print "<div id='songs-favorites' class='$songClass' style='display: none;'>";
     if ($userID == 0) {
         // User most be logged in to access their favorites
-        print "<p>Search for your favorite songs on Grooveshark. To use this feature, you must provide your Grooveshark login information in the Settings page.</p>";
+        print "<p>Search for your favorite songs on Grooveshark. To use this feature, you must provide your Grooveshark login information in the Settings page, then refresh this page.</p>";
     } else {
         print "<table id='save-music-choice-favorites'>";
         $username = $gs_options['username'];
@@ -214,9 +225,9 @@ function groovesharkBox()
                 $songNameComplete = preg_replace("/\'/", "&lsquo;", $songNameComplete, -1);
                 $songNameComplete = preg_replace("/\"/", "&quot;", $songNameComplete, -1);
                 $songName = preg_replace("/\'/", "&lsquo;", $songName, -1);
-                $songName = preg_replace("/\'/", "&lsquo;", $songName, -1);
+                $songName = preg_replace("/\"/", "&quot;", $songName, -1);
                 $artistName = preg_replace("/\"/", "&quot;", $artistName, -1);
-                $artisName = preg_replace("/\"/", "&quot;", $artistName, -1);
+                $artistName = preg_replace("/\'/", "&lsquo;", $artistName, -1);
                 // Sets up alternating row colors depending on WP version
                 if ($id % 2) {
                     $rowClass = 'gsTr1';
@@ -224,7 +235,7 @@ function groovesharkBox()
                     $rowClass = ($isVersion26 || $isVersion25) ? 'gsTr26' : 'gsTr27';
                 }
                 print "<tr class='$rowClass'>
-                           <td class='gsTableButton'><a title='Add This Song To Your Post' class='gsAdd' name='$songNameComplete::$songID' style='cursor: pointer'></a></td>
+                           <td class='gsTableButton'><a title='Add This Song To Your Post' class='gsAdd gsSong-$songID' name='$songNameComplete::$songID' style='cursor: pointer' id='gsSong-$songID'></a></td>
                            <td class='gsTableButton'><a title='Play This Song' class='gsPlay' name='$songID' style='cursor: pointer'></a></td>
                            <td>$songNameComplete</td>
                        </tr>";
@@ -238,45 +249,11 @@ function groovesharkBox()
     print "<div id='songs-playlists' class='$songClass' style='display: none;'>";
     if ($userID == 0) {
         // User must be logged in to access their playlists
-        print "<p>Search for your playlists on Grooveshark. To use this feature, you must provide your Grooveshark login information in the Settings page.</p>";
+        print "<p>Search for your playlists on Grooveshark. To use this feature, you must provide your Grooveshark login information in the Settings page, then refresh this page.</p>";
     } else {
         // NOTE: User should already be logged in from favorites div, so call to authenticateUser necessary
+        $gs_options = gsUpdateUserPlaylists($gs_options, $gsapi);
         $userPlaylists = $gs_options['userPlaylists'];
-        $apiPlaylists = $gsapi->userGetPlaylists();
-        foreach ($apiPlaylists as $apiPlaylistData) {
-            $apiPlaylistID = $apiPlaylistData['PlaylistID'];
-            $playlistName = $apiPlaylistData['Name'];
-            $apiModifiedTime = $apiPlaylistData['TSModified'];
-            $apiTimeData = date_parse($apiModifiedTime);
-            $apiTimestamp = mktime($apiTimeData['hour'], $apiTimeData['minute'], $apiTimeData['second'], $apiTimeData['month'], $apiTimeData['day'], $apiTimeData['year']);
-            $modifiedTime = $apiTimestamp;
-            if (!empty($userPlaylists[$apiPlaylistID])) {
-                // update modified time
-                $modifiedTime = $userPlaylists[$apiPlaylistID]['playlistInfo']['modifiedTime'];
-            }
-            if ((empty($userPlaylists[$apiPlaylistID])) || ((int)$apiTimestamp > (int)$modifiedTime)) {
-                // new playlist or modified playlist
-                $userPlaylists[$apiPlaylistID] = array();
-                $numberOfSongs = 0;
-                $playlistSongs = $gsapi->playlistGetSongs($apiPlaylistID);
-                if (empty($playlistSongs['error'])) {
-                    // Add the songs
-                    foreach ($playlistSongs as $song) {
-                        if (!empty($song['SongID']) && !empty($song['SongName']) && !empty($song['ArtistName'])) {
-                            $numberOfSongs++;
-                            $userPlaylists[$apiPlaylistID][$song['SongID']] = array('songName' => $song['SongName'], 'artistName' => $song['ArtistName']);
-                        }
-                    }
-                }
-                if (!empty($userPlaylists[$apiPlaylistID])) {
-                    $userPlaylists[$apiPlaylistID]['playlistInfo'] = array('name' => $playlistName, 'numSongs' => $numberOfSongs, 'modifiedTime' => $apiTimestamp);
-                } else {
-                    unset($userPlaylists[$apiPlaylistID]);
-                }
-            }
-        }
-        $gs_options['userPlaylists'] = $userPlaylists;
-        update_option('gs_options', $gs_options);
         
         print "<table id='save-music-choice-playlists'>";
 
@@ -304,11 +281,11 @@ function groovesharkBox()
                     }
                     $songString[] = array('songID' => $songID, 'songName' => $songData['songName'], 'artistName' => $songData['artistName'], 'songNameComplete' => $songNameComplete);
                 }
-                $jsonSongString = json_encode($songString);
+                $jsonSongString = gs_json_encode($songString);
                 print "<tr class='$rowClass'>
-                           <td class='gsTableButton'><a title='Add This Playlist To Your Post' class='gsAdd gsPlaylistAdd' name='$playlistID' style='cursor: pointer'>$jsonSongString<a></td>
-                           <td class='gsTableButton'><a title='Show All Songs In This Playlist' class='gsShow' name='$playlistID' style='cursor: pointer''>$jsonSongString</a></td>
-                           <td>{$playlistInfo['name']} ({$playlistInfo['numSongs']})</rd>
+                           <td class='gsTableButton'><a title='Add This Playlist To Your Post' class='gsAdd gsPlaylistAdd' name='$playlistID' style='cursor: pointer'>$jsonSongString</a></td>
+                           <td class='gsTableButton'><a title='Show All Songs In This Playlist' class='gsShow' name='$playlistID' style='cursor: pointer'>$jsonSongString</a></td>
+                           <td>{$playlistInfo['name']} ({$playlistInfo['numSongs']})</td>
                       </tr>";
                 $alt = 0;
                 foreach ($songString as $song) {
@@ -320,7 +297,7 @@ function groovesharkBox()
                     $alt++;
                     print "<tr class='child-$playlistID playlistRevealedSong $trClass' style='display:none;'>
                                 <td class='gsTableButton'>
-                                    <a class='gsAdd' style='cursor:pointer;' name='{$song['songNameComplete']}::{$song['songID']}' title='Add This Song To Your Post'></a>
+                                    <a class='gsAdd gsSong-{$song['songID']}' style='cursor:pointer;' name='{$song['songNameComplete']}::{$song['songID']}' title='Add This Song To Your Post' id='gsSong-{$song['songID']}'></a>
                                 </td>
                                 <td class='gsTableButton'>
                                     <a class='gsPlay' style='cursor:pointer;' name='{$song['songID']}' title='Play This Song'></a>
@@ -372,7 +349,7 @@ function groovesharkBox()
     <ul id='gsDisplayLink' style='display:none;' class='gsAppearanceOptions'>
         <li>
             <span class='key'><label for='playlistsName'>Playlist Name:</label></span>
-            <span class='value''>
+            <span class='value'>
                 <input tabindex='105' type='text' name='playlistsName' id='playlistsName' value='Grooveshark Playlist'/><span id='displayPhrasePlaylistExample'>Example: \"$displayPhrase: Grooveshark Playlist\"</span>
             </span>
         </li>
@@ -387,17 +364,35 @@ function groovesharkBox()
     <div id='gsDisplayWidget'>
         <ul class='gsAppearanceOptions'>
             <li>
-                <span class='key'>Add to Sidebar:</span>
+                <span class='key'>Add to Dashboard:</span>
                 <span class='value'>
-                    <input tabindex='105' type='radio' name='sidebarChoice' value='yes'>&nbsp; Yes (will override current Grooveshark Sidebar)</input><br />
-                    <input tabindex='105' type='radio' name='sidebarChoice' value='no' checked>&nbsp; No</input>
+                    <input tabindex='105' type='radio' name='dashboardChoice' value='yes' id='gsDashboardChoice'>&nbsp; Yes (will replace current Grooveshark Dashboard)</input><br />
+                    <input tabindex='105' type='radio' name='dashboardChoice' value='no' checked>&nbsp; No</input>
+                </span>
+            </li>
+        </ul>
+        <h2 id='singleAppearance'>Appearance of Single-Song Widgets</h2>
+        <ul class='gsAppearanceOptions'>
+            <li>
+                <span class='key'><label for='widgetTheme'>Widget Theme:</label></span>
+                <span class='value'>
+                    <select tabindex='107' type='text' id='widgetTheme' name='widgetTheme'>
+                        <option value='metal' selected='selected'>Metal</option>
+                        <option value='wood'>Wood</option>
+                        <option value='grass'>Grass</option>
+                        <option value='water'>Water</option>
+                    </select>
+                    <span>See Preview Below</span>
                 </span>
             </li>
             <li>
-                <span class='key'>Add to Dashboard:</span>
+                <span class='key'><label for='singleWidgetWidth'>Widget Width:</label></span>
                 <span class='value'>
-                    <input tabindex='105' type='radio' name='dashboardChoice' value='yes'>&nbsp; Yes (will override current Grooveshark Dashboard)</input><br />
-                    <input tabindex='105' type='radio' name='dashboardChoice' value='no' checked>&nbsp; No</input>
+                    <input tabindex='108' type='text' name='singleWidgetWidth' id='singleWidgetWidth' value='250'/><span>Range: 150px to 1000px</span>
+                    <div class='clear'></div>
+                    <br />
+                    <div class='gsWidgetPreviewContainer' id='gsSingleWidgetPreview'>
+                    </div>
                 </span>
             </li>
         </ul>
@@ -405,14 +400,14 @@ function groovesharkBox()
         <ul class='gsAppearanceOptions'>
             <li>
                 <span class='key'><label for='widgetWidth'>Widget Width:</label></span>
-                <span class='value''>
-                    <input tabindex='107' type='text' name='widgetWidth' id='widgetWidth' value='250'/></td><td><span>Range: 150px to 1000px</span>
+                <span class='value'>
+                    <input tabindex='107' type='text' name='widgetWidth' id='widgetWidth' value='250'/><span>Range: 150px to 1000px</span>
                 </span>
             </li>	
             <li>
                 <span class='key'><label for='widgetHeight'>Widget Height:</label></span>
                 <span class='value'>
-                    <input tabindex='108' type='text' name='widgetHeight' id='widgetHeight' value='176'/></td><td><span>Range: 150px to 1000px</span>
+                    <input tabindex='108' type='text' name='widgetHeight' id='widgetHeight' value='176'/><span>Range: 150px to 1000px</span>
                 </span>
             </li>
             <li>
@@ -432,6 +427,7 @@ function groovesharkBox()
     }
 print "
                     </select>
+                    <span>See Preview Below (Preview has 37-song limit)</span>
                     <div class='clear'></div>
                     <br/>
                     <div class='gsColorBlockContainer'>
@@ -488,6 +484,47 @@ function oldGroovesharkBox()
            </div>";
 }
 
+function gsUpdateUserPlaylists($gs_options, $gsapi) {
+    // updates the saved user playlists
+    $userPlaylists = $gs_options['userPlaylists'];
+    $apiPlaylists = $gsapi->userGetPlaylists();
+    foreach ($apiPlaylists as $apiPlaylistData) {
+        $apiPlaylistID = $apiPlaylistData['PlaylistID'];
+        $playlistName = $apiPlaylistData['Name'];
+        $apiModifiedTime = $apiPlaylistData['TSModified'];
+        $apiTimeData = date_parse($apiModifiedTime);
+        $apiTimestamp = mktime($apiTimeData['hour'], $apiTimeData['minute'], $apiTimeData['second'], $apiTimeData['month'], $apiTimeData['day'], $apiTimeData['year']);
+        $modifiedTime = $apiTimestamp;
+        if (!empty($userPlaylists[$apiPlaylistID])) {
+            // update modified time
+            $modifiedTime = $userPlaylists[$apiPlaylistID]['playlistInfo']['modifiedTime'];
+        }
+        if ((empty($userPlaylists[$apiPlaylistID])) || ((int)$apiTimestamp > (int)$modifiedTime)) {
+            // new playlist or modified playlist
+            $userPlaylists[$apiPlaylistID] = array();
+            $numberOfSongs = 0;
+            $playlistSongs = $gsapi->playlistGetSongs($apiPlaylistID);
+            if (empty($playlistSongs['error'])) {
+                // Add the songs
+                foreach ($playlistSongs as $song) {
+                    if (!empty($song['SongID']) && !empty($song['SongName']) && !empty($song['ArtistName'])) {
+                        $numberOfSongs++;
+                        $userPlaylists[$apiPlaylistID][$song['SongID']] = array('songName' => $song['SongName'], 'artistName' => $song['ArtistName']);
+                    }
+                }
+            }
+            if (!empty($userPlaylists[$apiPlaylistID])) {
+                $userPlaylists[$apiPlaylistID]['playlistInfo'] = array('name' => $playlistName, 'numSongs' => $numberOfSongs, 'modifiedTime' => $apiTimestamp);
+            } else {
+                unset($userPlaylists[$apiPlaylistID]);
+            }
+        }
+    }
+    $gs_options['userPlaylists'] = $userPlaylists;
+    update_option('gs_options', $gs_options);
+    return $gs_options;
+}
+
 function add_gs_options_page() 
 {
     add_options_page('Grooveshark Options', 'Grooveshark', 8, basename(__FILE__), 'grooveshark_options_page');
@@ -523,7 +560,7 @@ function groovesharkRssContent($args) {
 function groovesharkSidebarInit() {
     $gs_options = get_option('gs_options');
     wp_register_sidebar_widget('groovesharkSidebar', 'Grooveshark Sidebar', 'groovesharkSidebarContent', array('description' => 'Add a playlist to your Wordpress Sidebar using a Grooveshark Widget'));
-    register_widget_control('groovesharkSidebar', 'groovesharkSidebarOptions', 400);
+    register_widget_control('groovesharkSidebar', 'groovesharkSidebarOptions', 600);
 }
 
 function groovesharkDashboardInit() {
@@ -570,7 +607,7 @@ function groovesharkRssOptions() {
     // Have the configuration options here
     print "<h3>Grooveshark RSS Widget</h3>";
     if ($gs_options['userID'] == 0) {
-        print "<h4>You must save your login information to display your Grooveshark RSS feeds in the <a href='" . get_option('siteurl') . "/wp-admin/options-general.php?page=grooveshark.php' target='_blank'>settings page</a>.</h4>";
+        print "<h4>You must save your login information to display your Grooveshark RSS feeds in the <a href='" . get_option('siteurl') . "/wp-admin/options-general.php?page=grooveshark.php' target='_blank'>settings page</a>, then refresh this page.</h4>";
     } else {
         if ($didSave) {
             print "<h4>Your RSS settings have been saved.</h4>";
@@ -593,209 +630,360 @@ function groovesharkRssOptions() {
     }
 }
 
+function gsGetColors($colorScheme) {
+    switch ($colorScheme) {
+        case 1:
+            $color1 = 'CCA20C';
+            $color2 = '4D221C'; 
+            $color3 = 'CC7C0C';
+            break;
+        case 2:
+            $color1 = '87FF00';
+            $color2 = '0088FF'; 
+            $color3 = 'FF0054'; 
+            break;
+        case 3:
+            $color1 = 'FFED90';
+            $color2 = '359668';
+            $color3 = 'A8D46F';
+            break;
+        case 4:
+            $color1 = 'F0E4CC';
+            $color2 = 'F38630';
+            $color3 = 'A7DBD8';
+            break;
+        case 5:
+            $color1 = 'FFFFFF';
+            $color2 = '377D9F';
+            $color3 = 'F6D61F';
+            break;
+        case 6:
+            $color1 = '450512';
+            $color2 = 'D9183D';
+            $color3 = '8A0721';
+            break;
+        case 7:
+            $color1 = 'B4D5DA';
+            $color2 = '813B45';
+            $color3 = 'B1BABF';
+            break;
+        case 8:
+            $color1 = 'E8DA5E';
+            $color2 = 'FF4746';
+            $color3 = 'FFFFFF';
+            break;
+        case 9:
+            $color1 = '993937';
+            $color2 = '5AA3A0';
+            $color3 = 'B81207';
+            break;
+        case 10:
+            $color1 = 'FFFFFF';
+            $color2 = '009609';
+            $color3 = 'E9FF24';
+            break;
+        case 11:
+            $color1 = 'FFFFFF';
+            $color2 = '7A7A7A';
+            $color3 = 'D6D6D6';
+            break;
+        case 12:
+            $color1 = 'FFFFFF';
+            $color2 = 'D70860';
+            $color3 = '9A9A9A';
+            break;
+        case 13:
+            $color1 = '000000';
+            $color2 = 'FFFFFF';
+            $color3 = '620BB3';
+            break;
+        case 14:
+            $color1 = '4B3120';
+            $color2 = 'A6984D';
+            $color3 = '716627';
+            break;
+        case 15:
+            $color1 = 'F1CE09';
+            $color2 = '000000';
+            $color3 = 'FFFFFF';
+            break;
+        case 16:
+            $color1 = 'FFBDBD';
+            $color2 = 'DD1122';
+            $color3 = 'FFA3A3';
+            break;
+        case 17:
+            $color1 = 'E0DA4A';
+            $color2 = 'FFFFFF';
+            $color3 = 'F9FF34';
+            break;
+        case 18:
+            $color1 = '579DD6';
+            $color2 = 'CD231F';
+            $color3 = '74BF43';
+            break;
+        case 19:
+            $color1 = 'B2C2E6';
+            $color2 = '012C5F';
+            $color3 = 'FBF5D3';
+            break;
+        case 20:
+            $color1 = '60362A';
+            $color2 = 'E8C28E';
+            $color3 = '482E24';
+            break;
+        default:
+            $color1 = '000000';
+            $color2 = 'FFFFFF';
+            $color3 = '666666';
+            break;
+    }
+    return array($color1, $color2, $color3);
+}
+    
+
+
 function groovesharkSidebarOptions() {
     $gsapi = GSAPI::getInstance();
     $gs_options = get_option('gs_options');
     $didSave = 0;
     $wpurl = get_bloginfo('wpurl');
+    $siteurl = get_option('siteurl'); // used to provide links to js/images
+
     print "<link type='text/css' rel='stylesheet' href='$wpurl/wp-content/plugins/grooveshark/css/grooveshark.css'></link>\n
            <script type='text/javascript' src='http://ajax.googleapis.com/ajax/libs/jquery/1.4.0/jquery.min.js'></script>\n
            <script type='text/javascript' src='$wpurl/wp-content/plugins/grooveshark/js/grooveshark.sidebar.js'></script>";
     
-    print "<input type='hidden' id='groovesharkSidebarOptionsBox' value=''/>";
+    print "<input type='hidden' id='groovesharkSidebarOptionsBox' value='' />
+           <input type='hidden' id='gsBlogUrl' value='$siteurl' />
+           <input type='hidden' id='gsSessionID' value='" . $gsapi->getSessionID() . "' />";
+           
     if (isset($_POST['groovesharkWidget-submit'])) {
         // Update the saved options
-        if ($_POST['selectedPlaylist'] == -1) {
+        if (isset($_POST['gsClearSidebar']) || !isset($_POST['songsInfoArray'])) {
             $gs_options['sidebarPlaylists'] = array();
-            $didSave = 1;
+            $didSave = 2;
         } else {
-            $colorScheme = (int)$_POST['colorsSelect'];
-            $color1 = '000000';
-            $color2 = 'FFFFFF';
-            $color3 = '666666';
-            // Change colors for selected color scheme
-            switch ($colorScheme) {
-                case 1:
-                    $color1 = 'CCA20C';
-                    $color2 = '4D221C'; 
-                    $color3 = 'CC7C0C';
-                    break;
-                case 2:
-                    $color1 = '87FF00';
-                    $color2 = '0088FF'; 
-                    $color3 = 'FF0054'; 
-                    break;
-                case 3:
-                    $color1 = 'FFED90';
-                    $color2 = '359668';
-                    $color3 = 'A8D46F';
-                    break;
-                case 4:
-                    $color1 = 'F0E4CC';
-                    $color2 = 'F38630';
-                    $color3 = 'A7DBD8';
-                    break;
-                case 5:
-                    $color1 = 'FFFFFF';
-                    $color2 = '377D9F';
-                    $color3 = 'F6D61F';
-                    break;
-                case 6:
-                    $color1 = '450512';
-                    $color2 = 'D9183D';
-                    $color3 = '8A0721';
-                    break;
-                case 7:
-                    $color1 = 'B4D5DA';
-                    $color2 = '813B45';
-                    $color3 = 'B1BABF';
-                    break;
-                case 8:
-                    $color1 = 'E8DA5E';
-                    $color2 = 'FF4746';
-                    $color3 = 'FFFFFF';
-                    break;
-                case 9:
-                    $color1 = '993937';
-                    $color2 = '5AA3A0';
-                    $color3 = 'B81207';
-                    break;
-                case 10:
-                    $color1 = 'FFFFFF';
-                    $color2 = '009609';
-                    $color3 = 'E9FF24';
-                    break;
-                case 11:
-                    $color1 = 'FFFFFF';
-                    $color2 = '7A7A7A';
-                    $color3 = 'D6D6D6';
-                    break;
-                case 12:
-                    $color1 = 'FFFFFF';
-                    $color2 = 'D70860';
-                    $color3 = '9A9A9A';
-                    break;
-                case 13:
-                    $color1 = '000000';
-                    $color2 = 'FFFFFF';
-                    $color3 = '620BB3';
-                    break;
-                case 14:
-                    $color1 = '4B3120';
-                    $color2 = 'A6984D';
-                    $color3 = '716627';
-                    break;
-                case 15:
-                    $color1 = 'F1CE09';
-                    $color2 = '000000';
-                    $color3 = 'FFFFFF';
-                    break;
-                case 16:
-                    $color1 = 'FFBDBD';
-                    $color2 = 'DD1122';
-                    $color3 = 'FFA3A3';
-                    break;
-                case 17:
-                    $color1 = 'E0DA4A';
-                    $color2 = 'FFFFFF';
-                    $color3 = 'F9FF34';
-                    break;
-                case 18:
-                    $color1 = '579DD6';
-                    $color2 = 'CD231F';
-                    $color3 = '74BF43';
-                    break;
-                case 19:
-                    $color1 = 'B2C2E6';
-                    $color2 = '012C5F';
-                    $color3 = 'FBF5D3';
-                    break;
-                case 20:
-                    $color1 = '60362A';
-                    $color2 = 'E8C28E';
-                    $color3 = '482E24';
-                    break;
-                default:
-                    break;
+            $playlistID = 0;
+            if (count($_POST['songsInfoArray']) == 1) {
+                $embedCode = $gsapi->songGetWidgetEmbedCode($_POST['songsInfoArray'][0], $_POST['sidebarWidgetWidth'], $_POST['widgetTheme']);
+                // single song widget
+            } else {
+                $colorScheme = (int)$_POST['colorsSelect'];
+                $colors = gsGetColors($colorScheme);
+                $color1 = $colors[0];
+                $color2 = $colors[1];
+                $color3 = $colors[2];
+                $embedCode = $gsapi->playlistGetWidgetEmbedCode($_POST['songsInfoArray'], $_POST['sidebarWidgetWidth'], $_POST['sidebarWidgetHeight'], 'Sidebar Widget', $color2, $color1, $color1, $color3, $color2, $color1, $color3, $color2, $color2, $color1, $color3, $color2, $color2, $color3, $color2);
             }
-            $widgetWidth = $_POST['sidebarWidgetWidth'];
-            $widgetHeight = $_POST['sidebarWidgetHeight'];
-            $playlistID = $_POST['selectedPlaylist'];
-            $userPlaylist = $gs_options['userPlaylists'][$playlistID];
-            $playlistInfo = $userPlaylist['playlistInfo'];
-            unset($userPlaylist['playlistInfo']);
-            $songsArray = array();
-            foreach ($userPlaylist as $songID => $songInfo) {
-                $songsArray[] = $songID;
-            }
-            $embedCode = $gsapi->playlistGetWidgetEmbedCode($songsArray, $widgetWidth, $widgetHeight, 'Sidebar Widget', $color2, $color1, $color1, $color3, $color2, $color1, $color3, $color2, $color2, $color1, $color3, $color2, $color2, $color3, $color2);
             $gs_options['sidebarPlaylists'] = array('id' => $playlistID, 'embed' => $embedCode);
             $didSave = 1;
         }
         update_option('gs_options', $gs_options);
     }
-    $sidebarPlaylist = $gs_options['sidebarPlaylists'];
-    if (isset($sidebarPlaylist['id'])) {
-        $sidebarId = $sidebarPlaylist['id'];
+    print "<h3 class='groovesharkHeader'>Grooveshark Sidebar</h3>";
+    if ($didSave == 1) {
+        print "<p>Your music has been saved.</p>";
+    } elseif ($didSave == 2) {
+        print "<p>Your sidebar has been cleared.</p>";
     } else {
-        $sidebarId = -1;
+        print "<p>Add music to your Wordpress Sidebar</p>";
     }
-    $sidebarId = (int)$sidebarId;
-    print "<h3>Grooveshark Sidebar</h3>
-           <ul><li>";
-    if ($didSave) {
-        print "<h4>Your playlist has been saved.</h4>";
+    print "<input type='hidden' name='myHiddenData' id='myHiddenData' />
+           <div id='apContainer'></div>";
+    print "<div id='gsSongSelection'>
+               <ul class='gsTabContainer27'>
+                    <li><a id='search-option' class='gsTabActive26' onclick='gsToggleSongSelect(this)' href='javascript:;'>Search</a></li>
+                    <li><a id='favorites-option' class='gsTabInactive27' onclick='gsToggleSongSelect(this)' href='javascript:;'>Favorites</a></li>
+                    <li><a id='playlists-option' class='gsTabInactive27' onclick='gsToggleSongSelect(this)' href='javascript:;'>Playlists</a></li>
+                    <div class='clear' style='height:0'></div>
+                </ul>
+	<div id='songs-search' class='gsSongBox26' style='display: block;'>
+            <div id='searchInputWrapper'>
+                    <div id='searchInput'>
+                        <input tabindex='100' id='gs-query' type='text' name='gs-query' value='Search For A Song' class='empty' onfocus='if (this.className == \"empty\") {this.className = \"\"; this.value = \"\";}' onkeydown='if ((event.which && event.which == 13) || (event.keyCode && event.keyCode == 13)) {gsEnterSearch(this); return false;} else {gsUpdateValue(this); return true;}'/>
+                        <input type='hidden' name='gsLimit' value='{$gs_options['numberOfSongs']}' id='gsLimit' />
+                    </div>
+            </div>
+            <div id='searchButton'>
+                <input tabindex='101' type='button' name='editPage-1' id='gsSearchButton' value='Search' class='button gsMainButton' onclick='gsSearch(this)'/>
+            </div>
+            <div class='clear' style='height:0;'></div>
+	</div>
+	<div class='clear' style='height:0'></div>
+	<div id='search-results-container' class='gs26' style='display:none;'>
+            <div id='search-results-header'>
+                <h4 id='queryResult'></h4>
+            </div>
+            <div id='search-results-wrapper'>
+                <table id='save-music-choice-search' style='display:none'></table>
+            </div>
+	</div>
+                ";
+        // The favorites div (hidden by default)
+    print "<div id='songs-favorites' class='gsSongBox26' style='display: none;'>";
+    if (($gs_options['username'] . $gs_options['token']) == '') {
+        // User most be logged in to access their favorites
+        print "<p>Search your favorite songs on Grooveshark. To use this feature, you must provide your login information in the <a href='" . get_option('siteurl') . "/wp-admin/options-general.php?page=grooveshark.php' target='_blank'>settings page</a>, then refresh this page.</p>";
+
     } else {
-        print "<h4>Choose one of your playlists to add to your sidebar</h4>";
-    }
-    /*
-    // This experimental functionality not worked out yet for the sidebar options
-    print "<h4>You can also create a new playlist by searching for songs:</h4>";
-    groovesharkSmallBox();
-    */
-    $playlistsTotal = 0;
-    print "</li><li class='gsTr26'><label><input type='radio' name='selectedPlaylist' value='-1'>Clear Sidebar</input></label></li>";
-    $userPlaylists = $gs_options['userPlaylists'];
-    if (!empty($userPlaylists)) {
-        // If the user has saved playlists
-        foreach ($userPlaylists as $playlistID => $playlistInfo) {
-            // Retrieve relevant information and print the list item containing playlist information
-            $playlistsTotal++;
-            $checked = ($sidebarId == $playlistID) ? "checked='checked'" : "";
-            $playlistName = $playlistInfo['playlistInfo']['name'];
-            $playlistSongs = $playlistInfo['playlistInfo']['numSongs'];
-            if (!empty($playlistName) && !empty($playlistSongs)) {
-                $playlistURL = $gsapi->getPlaylistUrl($playlistID);
-                $class = ($playlistsTotal % 2) ? '' : 'gsTr26';
-                print "<li class='$class'>
-                          <label><input type='radio' onclick='groovesharkUpdateChoice(this);' class='$playlistSongs' id='playlist-$playlistID' name='selectedPlaylist' value='$playlistID' $checked>$playlistName ($playlistSongs)</input></label>
-                          <a target='_blank' href='$playlistURL'>&rarr;</a>
-                        </li>";
-            } else {
-                unset($userPlaylists[$playlistID]);
+        print "<table id='save-music-choice-favorites'>";
+        $username = $gs_options['username'];
+        $result = $gsapi->authenticateUser($username, $gs_options['token']);
+        $songsArray = $gsapi->userGetFavoriteSongs(); // Gets the user's favorite songs
+        if (isset($songsArray['error'])) {
+            // There was a problem getting the user's favorite songs
+            print "<tr><td colspan='3'>Error Code " . $songsArray['error'] . ". If this problem persists, you can e-mail roberto.sanchez@escapemg.com for support.";
+        } else {
+            // Get all favorite songs as rows in the table
+            foreach ($songsArray as $id => $songInfo) {
+                // Get necessary song information
+                $songName = $songInfo['SongName'];
+                $artistName = $songInfo['ArtistName'];
+                $songID = $songInfo['SongID'];
+                // Set a limit to how long song strings should be depending on WP versions (where boxes have smaller widths)
+                // Should come up with a dynamic width system but this is good enough for most users
+                // Sets up the name that is displayed in song list
+                $songNameComplete = (strlen("$songName by $artistName") > 78) 
+                                    ? substr($songName, 0, 75 - strlen($artistName)) . "&hellip; by $artistName" 
+                                    : "$songName by $artistName";
+                // Replaces all single and double quotes with the html character entities
+                $songNameComplete = preg_replace("/\'/", "&lsquo;", $songNameComplete, -1);
+                $songNameComplete = preg_replace("/\"/", "&quot;", $songNameComplete, -1);
+                $songName = preg_replace("/\'/", "&lsquo;", $songName, -1);
+                $songName = preg_replace("/\"/", "&quot;", $songName, -1);
+                $artistName = preg_replace("/\"/", "&quot;", $artistName, -1);
+                $artistName = preg_replace("/\'/", "&lsquo;", $artistName, -1);
+                // Sets up alternating row colors depending on WP version
+                if ($id % 2) {
+                    $rowClass = 'gsTr1';
+                } else {
+                    $rowClass = 'gsTr26';
+                }
+                print "<tr class='$rowClass'>
+                           <td class='gsTableButton'><a title='Add This Song To Your Post' class='gsAdd gsSong-$songID' onclick='addToSelected(this)' name='$songNameComplete::$songID' style='cursor: pointer' id='gsSong-$songID'></a></td>
+                           <td class='gsTableButton'><a title='Play This Song' class='gsPlay' onclick='toggleSong(this)' name='$songID' style='cursor: pointer'></a></td>
+                           <td>$songNameComplete</td>
+                       </tr>";
             }
         }
-        $gs_options['userPlaylists'] = $userPlaylists;
-        update_option('gs_options', $gs_options);
+        print "</table>";
+    }
+    print "</div>"; // End favorites div
+    print "<div id='songs-playlists' class='gsSongBox26' style='display:none;'>";
+    
+    $playlistsTotal = 0;
+    if (($gs_options['username'] . $gs_options['token']) !== '') {
+        $gs_options = gsUpdateUserPlaylists($gs_options, $gsapi);
+        $userPlaylists = $gs_options['userPlaylists'];
+        // If the user has saved playlists
+        $colorId = 0;
+        print "<table id='save-music-choice-playlists'>";
+        foreach ($userPlaylists as $playlistID => $playlistData) {
+            // print a table row containing current playlist's data
+            // Prepare style information
+            if ($colorId % 2) {
+                $rowClass = 'gsTr1';
+            } else {
+                $rowClass = 'gsTr26';
+            }
+            $colorId++;
+            // First, remove the entry in the array that does not correspond to a song
+            $playlistInfo = $playlistData['playlistInfo'];
+            unset($playlistData['playlistInfo']);
+            // prepare the songs list
+            $songString = array();
+            foreach ($playlistData as $songID => $songData) {
+                $songNameComplete = $songData['songName'] . ' by ' . $songData['artistName'];
+                if (strlen($songNameComplete) > 78) {
+                    // Cap string length at 78
+                    $songNameComplete = substr($songData['songName'], 0, 75 - strlen($songData['artistName'])) . '&hellip; by ' . $songData['artistName'];
+                }
+                $songString[] = array('songID' => $songID, 'songName' => $songData['songName'], 'artistName' => $songData['artistName'], 'songNameComplete' => $songNameComplete);
+            }
+            $jsonSongString = gs_json_encode($songString);
+            // Inline events used, since event delegation refuses to work
+            print "<tr class='$rowClass'>
+                       <td class='gsTableButton'><a title='Add This Playlist To Your Post' class='gsAdd gsPlaylistAdd' onclick='addToSelectedPlaylist(this);' name='$playlistID' style='cursor: pointer'>$jsonSongString</a></td>
+                       <td class='gsTableButton'><a title='Show All Songs In This Playlist' class='gsShow' name='$playlistID' onclick='showPlaylistSongs(this);' style='cursor: pointer'>$jsonSongString</a></td>
+                       <td>{$playlistInfo['name']} ({$playlistInfo['numSongs']})</td>
+                  </tr>";
+            $alt = 0;
+            foreach ($songString as $song) {
+                if ($alt % 2) {
+                    $trClass = 'gsTr1';
+                } else {
+                    $trClass = 'gsTr26';
+                }
+                $alt++;
+                print "<tr class='child-$playlistID playlistRevealedSong $trClass' style='display:none;'>
+                            <td class='gsTableButton'>
+                                <a class='gsAdd gsSong-{$song['songID']}' onclick='addToSelected(this)' style='cursor:pointer;' name='{$song['songNameComplete']}::{$song['songID']}' title='Add This Song To Your Post' id='gsSong-{$song['songID']}'></a>
+                            </td>
+                            <td class='gsTableButton'>
+                                <a class='gsPlay' style='cursor:pointer;' name='{$song['songID']}' title='Play This Song' onclick='toggleSong(this)'></a>
+                            </td>
+                            <td>{$song['songNameComplete']}</td>
+                        </tr>";
+            }
+        }
+        print "</table>";
     } else {
         // No playlists, notify user on how to save playlists
-        print "<li>You do not have any playlists available.</li><li>You must either provide your login information in the <a href='" . get_option('siteurl') . "/wp-admin/options-general.php?page=grooveshark.php' target='_blank'>settings page</a> or save a playlist to one of your posts to see it here.</li>";
+        print "<p>Search your playlists on Grooveshark. To use this feature, you must provide your login information in the <a href='" . get_option('siteurl') . "/wp-admin/options-general.php?page=grooveshark.php' target='_blank'>settings page</a>, then refresh this page.</p>";
     }
+    print "</div>";
 
-    print "</ul>
+    print "<div id='selected-song' class='gsSongBox26'>
+        <div id='selected-songs-header'>
+                <a title='Remove All Your Selected Songs' href='javascript:;' id='clearSelected' onclick='clearSelected(this)'>Clear All</a>
+                <h4 id='selectedCount'>Selected Songs (0):</h4>
+        </div>
+        <table id='selected-songs-table'></table>
+    </div>
+    </div>
     <input name='groovesharkWidget-submit' type='hidden' value='1' />
-    <h3>Appearance Options</h3>
+    <h3 class='groovesharkHeader'>Appearance Options</h3>
     <input type='hidden' id='sidebarDataStore' value='-1'>
-    <ul>
-    <li class='gsTr26'><label>Widget Width (px): <input type='text' name='sidebarWidgetWidth' id='gsSidebarWidgetWidth' value='200'/></label></li>
-    <li><label>Widget Height (px): <input type='text' name='sidebarWidgetHeight' id='gsSidebarWidgetHeight' value='400'/></label></li>
-    <li class='gsTr26'><label>Color Scheme: <select type='text' onchange='changeSidebarColor(this.form.colorsSelect)' name='colorsSelect'>";
+    <ul class='gsAppearanceOptions'>
+    <li><span class='key'><label for='gsClearSidebar'>Clear Sidebar:</label></span><span class='value'><input type='checkbox' name='gsClearSidebar' id='gsClearSidebar' /><span style='font-size:12px'>Check this box and Save to clear the Grooveshark Sidebar.</span></span></li>
+    <li><span class='key'><label for='sidebarWidgetWidth'>Widget Width (px):</label></span><span class='value'><input tabindex='900' type='text' name='sidebarWidgetWidth' id='gsSidebarWidgetWidth' value='200' onchange='gsUpdateSidebarWidth(this)'/></span></li>
+    <li><span class='key'><label for='sidebarWidgetHeight'>Widget Height (px):</label></span><span class='value'><input tabindex='901' type='text' name='sidebarWidgetHeight' id='gsSidebarWidgetHeight' value='176' onchange='gsUpdateSidebarHeight(this)'/><span>For Multiple Songs</span></span></li>
+    <li>
+        <span class='key'><label for='widgetTheme'>Widget Theme:</label></span>
+        <span class='value'>
+            <select tabindex='902' type='text' id='widgetTheme' name='widgetTheme' onchange='changeSidebarTheme(this.form.widgetTheme)' onkeyup='changeSidebarTheme(this.form.widgetTheme)'>
+                <option value='metal' selected='selected'>Metal</option>
+                <option value='wood'>Wood</option>
+                <option value='grass'>Grass</option>
+                <option value='water'>Water</option>
+            </select>
+            <span>For Single Songs</span>
+            <br />
+            <div class='gsWidgetPreviewContainer' id='gsSingleWidgetPreview'>
+            <object width='200' height='40'>
+                <param value='http://listen.grooveshark.com/songWidget.swf' name='movie'></param>
+                <param value='window' name='wmode'></param>
+                <param value='always' name='allowScriptAccess'></param>
+                <param value='hostname=cowbell.grooveshark.com&amp;songID=203993&amp;style=metal' name='flashvars'></param>
+                <embed width='200' height='40' wmode='window' allowscriptaccess='always' flashvars='hostname=cowbell.grooveshark.com&amp;songID=203993&amp;style=metal' type='application/x-shockwave-flash' src='http://staging.listen.grooveshark.com/songWidget.swf'></embed>
+            </object>
+            </div>
+        </span>
+    </li>
+    <li>
+        <span class='key'><label for='colorsSelect'>Color Scheme:</label></span>
+        <span class='value'>
+            <select tabindex='903' type='text' onchange='changeSidebarColor(this.form.colorsSelect)' onkeyup='changeSidebarColor(this.form.colorsSelect)' name='colorsSelect' id='colors-select'>";
     // Customize the color scheme of the widget
     $colorsArray = array("Default","Walking on the Sun","Neon Disaster","Golf Course","Creamcicle at the Beach Party","Toy Boat","Wine and Chocolate Covered Strawberries","Japanese Kite","Eggs and Catsup","Shark Bait","Sesame Street","Robot Food","Asian Haircut","Goth Girl","I Woke Up And My House Was Gone","Too Drive To Drunk","She Said She Was 18","Lemon Party","Hipster Sneakers","Blue Moon I Saw You Standing Alone","Monkey Trouble In Paradise");
     foreach ($colorsArray as $id => $colorOption) {
         print "<option value='$id'>$colorOption</option>";
     }
-    print "</select></label>
+    print "</select>
+           <span>For Multiple Songs</span>
+           <div class='clear'></div>
+           <br />
            
            <div class='gsColorBlockContainer'>
                Base
@@ -809,8 +997,24 @@ function groovesharkSidebarOptions() {
                Secondary
                <div style='background-color: rgb(102, 102, 102)' id='widget-secondary-color' class='gsColorBlock'></div>
             </div>
+            <br />
+            <div class='gsWidgetPreviewContainer' id='gsWidgetExample' style='margin:90px 0 0 0 !important;'>
+            <object width='200' height='176'>
+                <param value='http://listen.grooveshark.com/widget.swf' name='movie'></param>
+                <param value='window' name='wmode'></param>
+                <param value='always' name='allowScriptAccess'></param>
+                <param value='hostname=cowbell.grooveshark.com&amp;songIDs=13963,23419725,21526481,203993&amp;bt=FFFFFF&amp;bth=000000&amp;bbg=000000&amp;bfg=666666&amp;pbg=FFFFFF&amp;pfg=000000&amp;pbgh=666666&amp;pfgh=FFFFFF&amp;lbg=FFFFFF&amp;lfg=000000&amp;lbgh=666666&amp;lfgh=FFFFFF&amp;sb=FFFFFF&amp;sbh=666666&amp;si=FFFFFF' name='flashvars'></param>
+                <embed width='200' height='176' wmode='window' allowscriptaccess='always' flashvars='hostname=cowbell.grooveshark.com&amp;songIDs=13963,23419725,21526481,203993&amp;bt=FFFFFF&amp;bth=000000&amp;bbg=000000&amp;bfg=666666&amp;pbg=FFFFFF&amp;pfg=000000&amp;pbgh=666666&amp;pfgh=FFFFFF&amp;lbg=FFFFFF&amp;lfg=000000&amp;lbgh=666666&amp;lfgh=FFFFFF&amp;sb=FFFFFF&amp;sbh=666666&amp;si=FFFFFF' type='application/x-shockwave-flash' src='http://listen.grooveshark.com/widget.swf'></embed>
+            </object>
+            </div>
+            </span>
             </li></ul>
             <div style='clear:both'></div>";
+    if ($didSave == 1) {
+        print "<p>Your music has been saved.</p>";
+    } elseif ($didSave == 2) {
+        print "<p>Your sidebar has been cleared.</p>";
+    }
 }
 
 add_action('plugins_loaded', 'groovesharkSidebarInit');
@@ -969,6 +1173,7 @@ function grooveshark_options_page() {
             } else {
                 $errorCodes[] = 'Could not authenticate login information.';
                 $token = '';
+                $username = '';
             }
             $updateOptions += array('userID' => $userID, 'token' => $token, 'username' => $username);
         }
@@ -1035,7 +1240,7 @@ function grooveshark_options_page() {
         print "<div class='updated'>";
         if ($_POST['Status'] == 'Reset') {
             // user wants to reset login information, destroy saved token and set userID and username to empty
-            $updateArray = array('userID' => 0, $token => '', $username => '');
+            $updateArray = array('userID' => 0, 'token' => '', 'username' => '');
             $gs_options = array_merge($gs_options, $updateArray);
             update_option('gs_options', $gs_options);
             print "<p>Login information has been reset.</p>";

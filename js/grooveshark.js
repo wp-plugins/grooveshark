@@ -15,7 +15,7 @@ jQuery(function() {
         jQuery('#gsSearchButton').width(60);
     }
     var gsDataStore = jQuery('#gsDataStore');
-    gsDataStore.data('gsDataStore', {isVersion26: false, lastPlayed: false});
+    gsDataStore.data('gsDataStore', {isVersion26: false, lastPlayed: false, theme: 'metal', colorScheme: '0'});
     // Add an onfocus event to the song search input to remove grayed-out text
     jQuery('#gs-query').focus(function() {
         if (jQuery(this).hasClass('empty')) {
@@ -175,7 +175,7 @@ function addToSelected(songInfo) {
             className = 'gsTr1';
         }
         // Prepare the row with the selected song
-        var rowContent = "<tr class='"+className+"'><td class='gsTableButton'>" + ((document.getElementById('isSmallBox').value == 1) ? ("<a class='gsRemove' title='Remove This Song' style='cursor:pointer;'></a></td>") : ("<a title='Play This Song' class='gsPlay' name='"+songID+"' style='cursor: pointer;'></a></td>")) + "<td>"+songNameComplete+"<input type='hidden' name='songsInfoArray[]' class='songsInfoArrayClass' value='"+songID+"'/></td>" + ((document.getElementById('isSmallBox').value == 1) ? '' : "<td class='gsTableButton'><a title='Remove This Song' class='gsRemove' style='cursor: pointer; float: right;'></a></td>") + "</tr>";
+        var rowContent = "<tr class='"+className+"'><td class='gsTableButton'>" + ((document.getElementById('isSmallBox').value == 1) ? ("<a class='gsRemove' title='Remove This Song' style='cursor:pointer;'></a></td>") : ("<a title='Play This Song' class='gsPlay' name='"+songID+"' style='cursor: pointer;'></a></td>")) + "<td>"+songNameComplete+"<input type='hidden' class='gsSong-"+songID+"' name='" + songNameComplete + "::" + songID + "' /><input type='hidden' name='songsInfoArray[]' class='songsInfoArrayClass' value='"+songID+"'/></td>" + ((document.getElementById('isSmallBox').value == 1) ? '' : "<td class='gsTableButton'><a title='Remove This Song' class='gsRemove' style='cursor: pointer; float: right;'></a></td>") + "</tr>";
         selectedTable.append(rowContent);
         // Auto-adjust the widget height for the new number of songs, unless height is predetermined by user
         widgetHeight = jQuery('#widgetHeight');
@@ -189,6 +189,14 @@ function addToSelected(songInfo) {
 
 //Handles unselecting a song for addition.
 function removeFromSelected(element) {
+    var gsDataStore = jQuery('#gsDataStore').data('gsDataStore');
+    var lastPlayed = gsDataStore.lastPlayed;
+    var currentPlayed = jQuery('.gsPlay, .gsPause', element.parentNode.parentNode.parentNode)[0];
+    if (lastPlayed.name == currentPlayed.name) {
+        // currently played song is deleted, stop playback
+        jQuery('#apContainer').empty();
+        gsDataStore.lastPlayed = false;
+    }
     // Just remove the song's row, adjust widget height as necessary, and update selected song count
     jQuery(element.parentNode.parentNode).remove();
     if ((!!document.getElementById('widgetHeight')) && ((+document.getElementById('widgetHeight').value) > 176)) {
@@ -229,8 +237,6 @@ function gsAppendToComment(obj) {
     if (songsArray.length > 0) {
         obj.value = 'Saving...';
         obj.disabled = true;
-        // Needs to have a mechanism for displaying playlist links, without actually creating the playlists...
-        // Pull up the following: #gsCommentPlaylistName, #gsCommentDisplayPhrase
         var songIDs = [];
         var songCount = 0;
         var songLimit = document.getElementById('gsCommentSongLimit').value;
@@ -257,13 +263,13 @@ function gsAppendToComment(obj) {
         if (songIDs.length == 1) {
             //single song
             if (displayOption == 'widget') {
-                songContent = getSingleGSWidget(songIDs[0], widgetWidth);
+                // should add support for custom single-song themes
+                songContent = getSingleGSWidget(songIDs[0], widgetWidth, 'metal');
             } else {
-                var name = $('#gsSong-' + songIDs[0]).attr('name');
+                var name = jQuery('.gsSong-' + songIDs[0]).first().attr('name');
                 var songNameComplete = name.split('::')[0];
                 var songName = songNameComplete.split(' by ')[0];
                 var displayPhrase = document.getElementById('gsCommentDisplayPhrase').value;
-
                 jQuery.post(document.getElementById('gsBlogUrl').value + '/wp-content/plugins/grooveshark/gsGetSongLink.php', {songID: songIDs[0]}, function(returnedData) {
                     songContent = "<a target=_blank' href='" + returnedData + "'>" + displayPhrase + ": " + songNameComplete + "</a>";
                     if (!!document.getElementById('comment')) {
@@ -312,20 +318,20 @@ function gsAppendToComment(obj) {
     }
 }
 
-function getSingleGSWidget(songID, width) {
-    return getGSWidgetEmbedCode('songWidget.swf', width, 40, [songID], 0, '');
+function getSingleGSWidget(songID, width, theme) {
+    return getGSWidgetEmbedCode('songWidget.swf', width, 40, [songID], 0, '', "&amp;style=" + theme);
 }
 
 function getSingleApWidget(songID) {
-    return getGSWidgetEmbedCode('songWidget.swf', 1, 1, [songID], 1, '');
+    return getGSWidgetEmbedCode('songWidget.swf', 1, 1, [songID], 1, '', '');
 }
 
 function getPlaylistGSWidget(songIDs, width, height, bt, bth, bbg, bfg, pbg, pfg, pbgh, pfgh, lbg, lfg, lbgh, lfgh, sb, sbh, si) {
     var colors = ['&amp;bt=', bt, '&amp;bth=', bth, '&amp;bbg=', bbg, '&amp;bfg=', bfg, '&amp;pbg=', pbg, '&amp;pfg=', pfg, '&amp;pbgh=', pbgh, '&amp;pfgh=', pfgh, '&amp;lbg=', lbg, '&amp;lfg=', lfg, '&amp;lbgh=', lbgh, '&amp;lfgh=', lfgh, '&amp;sb=', sb, '&amp;sbh=', sbh, '&amp;si=', si].join('');
-    return getGSWidgetEmbedCode('widget.swf', width, height, songIDs, 0, colors);
+    return getGSWidgetEmbedCode('widget.swf', width, height, songIDs, 0, colors, '');
 }
 
-function getGSWidgetEmbedCode(swfName, width, height, songIDs, ap, colors) {
+function getGSWidgetEmbedCode(swfName, width, height, songIDs, ap, colors, theme) {
     var songIDString = '';
     if (songIDs.length == 1) {
         songIDString = 'songID=' + songIDs[0];
@@ -334,12 +340,12 @@ function getGSWidgetEmbedCode(swfName, width, height, songIDs, ap, colors) {
     }
     var ap = (+ap != 0) ? '&amp;p=' + ap : '';
     var embed = ["<object width='", width, "' height='", height, "'>",
-                     "<param name='movie' value='http://listen.grooveshark.com/", swfName, "'></param>",
-                     "<param name='wmode' value='window'></param>",
-                     "<param name='allowScriptAccess' value='always'></param>",
-                     "<param name='flashvars' value='hostname=cowbell.grooveshark.com&amp;", songIDString, ap, colors, "'></param>",
-                     "<embed src='http://listen.grooveshark.com/", swfName, "' type='application/x-shockwave-flash' width='", width, "' height='", height, "' flashvars='hostname=cowbell.grooveshark.com&amp;", songIDString, ap, colors, "' allowScriptAccess='always' wmode='window'></embed>",
-                "</object>"].join('');
+                         "<param name='movie' value='http://listen.grooveshark.com/", swfName, "'></param>",
+                         "<param name='wmode' value='window'></param>",
+                         "<param name='allowScriptAccess' value='always'></param>",
+                         "<param name='flashvars' value='hostname=cowbell.grooveshark.com&amp;", songIDString, theme, ap, colors, "'></param>",
+                         "<embed src='http://listen.grooveshark.com/", swfName, "' type='application/x-shockwave-flash' width='", width, "' height='", height, "' flashvars='hostname=cowbell.grooveshark.com&amp;", songIDString, theme, ap, colors, "' allowScriptAccess='always' wmode='window'></embed>",
+                    "</object>"].join('');
     return embed;
 }
 

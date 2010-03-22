@@ -3,7 +3,6 @@
 
 require_once 'GSAPI.php';
 
-
 if ((isset($_POST['sessionID']) && ($_POST['sessionID'] != ''))) {
     // Gets a GSAPI object for API calls
     $gsapi = GSAPI::getInstance($_POST['sessionID']);
@@ -16,7 +15,7 @@ if ((isset($_POST['sessionID']) && ($_POST['sessionID'] != ''))) {
             print "<tr><td>Error Code {$songs['error']}. Please try again.</td></tr>";
         } else {
             // Set up different styles for different wp versions
-            $altClass = ($_POST['isVersion26'] == 1) ? 'gsTr26' : 'gsTr27';
+            $altClass = ($_POST['isVersion26'] == 'true') ? 'gsTr26' : 'gsTr27';
             $isSmallBox = ($_POST['isSmallBox'] == 1) ? true : false;
             $stringLimit = ($_POST['isVersion26'] == 1) ? 73 : 80;
             if (empty($songs)) {

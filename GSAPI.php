@@ -8,24 +8,19 @@
  */
 
 // These functions added for php versions that don't include json functions
-if (!function_exists('json_decode') or !function_exists('json_encode')) {
-    require_once 'GSJSON.php';
-}
-
-if ( !function_exists('json_decode') ){
-    function json_decode($content){
+function gs_json_decode($content, $arg) {
+    if (!extension_loaded('json')) {
+        if (!class_exists('GS_Services_JSON')) {
+            require_once 'GSJSON.php';
+        }
         $json = new GS_Services_JSON(SERVICES_JSON_LOOSE_TYPE);
         return $json->decode($content);
+
+    } else {
+        // just use php's json if it is available
+        return json_decode($content, $arg);
     }
 }
-
-if ( !function_exists('json_encode') ){
-    function json_encode($content){
-        $json = new GS_Services_JSON;
-        return $json->encode($content);
-    }
-}
-
 
 class GSAPI
 {
@@ -67,7 +62,7 @@ class GSAPI
         curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 2);
         $result = curl_exec($curl);
         curl_close($curl);
-        return json_decode($result, true);
+        return gs_json_decode($result, true);
     }
 
     /*
@@ -330,9 +325,9 @@ class GSAPI
      * @param   int     width of widget in pixels
      * @return  string  Widget's embed code (or error string)
      */
-    public function songGetWidgetEmbedCode($songID, $width)
+    public function songGetWidgetEmbedCode($songID, $width, $theme = 'metal')
     {
-        return self::getWidgetEmbedCode('songWidget.swf', $width, 40, array('songID' => $songID));
+        return self::getWidgetEmbedCode('songWidget.swf', $width, 40, array('songIDs' => $songID), 0, null, $theme);
     }
 
     /**
@@ -342,7 +337,7 @@ class GSAPI
      * @return  string  widget's embed code or error string
      */
     public function songGetApWidgetEmbedCode($songID) {
-        return self::getWidgetEmbedCode('songWidget.swf', 0, 0, array('songID' => $songID), 1);
+        return self::getWidgetEmbedCode('songWidget.swf', 0, 0, array('songIDs' => $songID), 1, null, 'metal');
     }
 
     /**
@@ -382,13 +377,14 @@ class GSAPI
         $ids = 'songIDs=' . $ids['songIDs'];
         $colors = is_array($colors) && !empty($colors) ? '&amp;' . http_build_query($colors) : '';
         $ap = ($ap != 0) ? "&amp;p=$ap" : '';
+        $style = '&style=' . $style;
         $embed = "
         <object width='$width' height='$height'>
             <param name='movie' value='http://listen.grooveshark.com/$swfName'></param>
             <param name='wmode' value='window'></param>
             <param name='allowScriptAccess' value='always'></param>
-            <param name='flashvars' value='hostname=cowbell.grooveshark.com&amp;{$ids}{$ap}{$colors}'></param>
-            <embed src='http://listen.grooveshark.com/$swfName' type='application/x-shockwave-flash' width='$width' height='$height' flashvars='hostname=cowbell.grooveshark.com&amp;{$ids}{$ap}{$colors}' allowScriptAccess='always' wmode='window'></embed>
+            <param name='flashvars' value='hostname=cowbell.grooveshark.com&amp;{$ids}{$ap}{$colors}{$style}'></param>
+            <embed src='http://listen.grooveshark.com/$swfName' type='application/x-shockwave-flash' width='$width' height='$height' flashvars='hostname=cowbell.grooveshark.com&amp;{$ids}{$ap}{$colors}{$style}' allowScriptAccess='always' wmode='window'></embed>
         </object>";
         return $embed;
     }
