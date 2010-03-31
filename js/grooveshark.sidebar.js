@@ -139,9 +139,6 @@ function getSearchResultsWrapper(data, context) {
     } else {
         searchWrapper = jQuery('#search-results-wrapper', context);
         data.searchWrapper = searchWrapper;
-        if (typeof(searchWrapper.attr('onmousedown')) == 'undefined') {
-            setUpSearchEvents(searchWrapper);
-        }
     }
     return searchWrapper;
 }
@@ -166,19 +163,6 @@ function getMultiWidgetPreview(data, context) {
         data.multiWidgetPreview = widgetPreview;
     }
     return widgetPreview;
-}
-
-function setUpSearchEvents(searchWrapper) {
-    searchWrapper.click(function(ev) {
-        if (ev.target.className.indexOf('gsAdd') != -1) {
-            addToSelected(ev.target);
-            return false;
-        }
-        if ((ev.target.className.indexOf('gsPlay') != -1) || (ev.target.className.indexOf('gsPause') != -1)) {
-            toggleSong(ev.target);
-            return false;
-        }
-    });
 }
 
 function getQueryResult(data, context) {
@@ -206,7 +190,7 @@ function gsSearch(obj) {
     var searchWrapper = getSearchResultsWrapper(myData, obj.parentNode.parentNode.parentNode);
     if (query != '') {
         // load the table containing the search results
-        searchWrapper.load(document.getElementById('gsBlogUrl').value + "/wp-content/plugins/grooveshark/gsSearch.php?" + random, {query: query, sessionID: document.getElementById('gsSessionID').value, limit: document.getElementById('gsLimit').value, isVersion26: true, isSmallBox: 0}, function(){
+        searchWrapper.load(document.getElementById('gsBlogUrl').value + "/wp-content/plugins/grooveshark/gsSearch.php?" + random, {query: query, sessionID: document.getElementById('gsSessionID').value, limit: document.getElementById('gsLimit').value, isVersion26: true, isSmallBox: 0, isSidebar: 1}, function(){
             var queryResult = getQueryResult(myData, obj.parentNode.parentNode.parentNode);
             if (searchWrapper.children().length > 0) {
                 // Header for the search result table
@@ -239,7 +223,7 @@ function gsClickSearch(obj) {
 function addToSelectedPlaylist(obj) {
     // prepare playlist info
     var myData = jQuery('#myHiddenData').data('data');
-    var playlistSongs = obj.innerHTML;
+    var playlistSongs = obj.firstChild.innerHTML;
     var playlistID = obj.name;
     var playlistSongs = jQuery.parseJSON(playlistSongs);
     var context = obj.parentNode.parentNode.parentNode.parentNode.parentNode.parentNode;

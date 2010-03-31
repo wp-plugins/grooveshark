@@ -4,7 +4,7 @@ Plugin Name: Grooveshark for Wordpress
 Plugin URI: http://www.grooveshark.com/wordpress
 Description: Search for <a href="http://www.grooveshark.com">Grooveshark</a> songs and add links to a song or song widgets to your blog posts. 
 Author: Roberto Sanchez and Vishal Agarwala
-Version: 1.3.0
+Version: 1.4.0
 Author URI: http://www.grooveshark.com
 */
 
@@ -283,8 +283,8 @@ function groovesharkBox()
                 }
                 $jsonSongString = gs_json_encode($songString);
                 print "<tr class='$rowClass'>
-                           <td class='gsTableButton'><a title='Add This Playlist To Your Post' class='gsAdd gsPlaylistAdd' name='$playlistID' style='cursor: pointer'>$jsonSongString</a></td>
-                           <td class='gsTableButton'><a title='Show All Songs In This Playlist' class='gsShow' name='$playlistID' style='cursor: pointer'>$jsonSongString</a></td>
+                           <td class='gsTableButton'><a title='Add This Playlist To Your Post' class='gsAdd gsPlaylistAdd' name='$playlistID' style='cursor: pointer'><span style='display:none'>$jsonSongString</span></a></td>
+                           <td class='gsTableButton'><a title='Show All Songs In This Playlist' class='gsShow' name='$playlistID' style='cursor: pointer'></a></td>
                            <td>{$playlistInfo['name']} ({$playlistInfo['numSongs']})</td>
                       </tr>";
                 $alt = 0;
@@ -334,15 +334,15 @@ function groovesharkBox()
         <li>
             <span class='key'>Display Music As:</span>
             <span class='value' id='gsAppearanceRadio'>
-                <input tabindex='103' type='radio' name='displayChoice' value='link'>&nbsp; Link</input><br/>
-                <input tabindex='103' type='radio' name='displayChoice' value='widget' checked>&nbsp; Widget</input>
+                <input tabindex='103' type='radio' name='displayChoice' value='link' />&nbsp; Link<br/>
+                <input tabindex='103' type='radio' name='displayChoice' value='widget' checked />&nbsp; Widget
             </span>
         </li>
         <li>
             <span class='key'>Position Music At:</span>
             <span class='value'>
-                <input id='gsPosition' tabindex='104' type='radio' name='positionChoice' value='beginning'>&nbsp; Beginning of Post</input><br/>
-                <input tabindex='104' type='radio' name='positionChoice' value='end' checked>&nbsp; End of Post</input>
+                <input id='gsPosition' tabindex='104' type='radio' name='positionChoice' value='beginning' />&nbsp; Beginning of Post<br/>
+                <input tabindex='104' type='radio' name='positionChoice' value='end' checked />&nbsp; End of Post
             </span>
         </li>
     </ul>
@@ -350,14 +350,14 @@ function groovesharkBox()
         <li>
             <span class='key'><label for='playlistsName'>Playlist Name:</label></span>
             <span class='value'>
-                <input tabindex='105' type='text' name='playlistsName' id='playlistsName' value='Grooveshark Playlist'/><span id='displayPhrasePlaylistExample'>Example: \"$displayPhrase: Grooveshark Playlist\"</span>
+                <input tabindex='105' type='text' name='playlistsName' id='playlistsName' value='Grooveshark Playlist' /><span id='displayPhrasePlaylistExample'>Example: \"$displayPhrase: Grooveshark Playlist\"</span>
             </span>
         </li>
 
         <li>
             <span class='key'><label for='displayPhrase'>Link Display Phrase:</label></span>
             <span class='value'>
-                <input tabindex='106' type='text' name='displayPhrase' id='displayPhrase' value='$displayPhrase'/><span id='displayPhraseExample'>Example: \"$displayPhrase: song by artist\"</span>			
+                <input tabindex='106' type='text' name='displayPhrase' id='displayPhrase' value='$displayPhrase' /><span id='displayPhraseExample'>Example: \"$displayPhrase: song by artist\"</span>			
             </span>
         </li>
     </ul>
@@ -366,8 +366,8 @@ function groovesharkBox()
             <li>
                 <span class='key'>Add to Dashboard:</span>
                 <span class='value'>
-                    <input tabindex='105' type='radio' name='dashboardChoice' value='yes' id='gsDashboardChoice'>&nbsp; Yes (will replace current Grooveshark Dashboard)</input><br />
-                    <input tabindex='105' type='radio' name='dashboardChoice' value='no' checked>&nbsp; No</input>
+                    <input tabindex='105' type='radio' name='dashboardChoice' value='yes' id='gsDashboardChoice' />&nbsp; Yes (will replace current Grooveshark Dashboard)<br />
+                    <input tabindex='105' type='radio' name='dashboardChoice' value='no' checked />&nbsp; No
                 </span>
             </li>
         </ul>
@@ -456,7 +456,7 @@ print "
        <table id='gsSave'>
        <tr>
        <td>
-       <input tabindex='110' type='button' class='button-primary button' value='Save Music' id='save-post' name='save' onclick='gsAppendToContent(this)'/>
+       <input tabindex='110' type='button' class='button-primary button' value='Save Music' id='gs-save-post' name='save' onclick='gsAppendToContent(this)'/>
        <span id='gsCommentStatusMessage' style='display:none; background-color:#ffcccc; color:#001111; font-size:1.15em; margin-left:10px;'></span>
        </td>
        </tr>
@@ -559,7 +559,7 @@ function groovesharkRssContent($args) {
 // Widget code
 function groovesharkSidebarInit() {
     $gs_options = get_option('gs_options');
-    wp_register_sidebar_widget('groovesharkSidebar', 'Grooveshark Sidebar', 'groovesharkSidebarContent', array('description' => 'Add a playlist to your Wordpress Sidebar using a Grooveshark Widget'));
+    wp_register_sidebar_widget('groovesharkSidebar', 'Grooveshark Sidebar', 'groovesharkSidebarContent', array('description' => 'Add music to your Wordpress Sidebar using a Grooveshark Widget'));
     register_widget_control('groovesharkSidebar', 'groovesharkSidebarOptions', 600);
 }
 
@@ -904,8 +904,8 @@ function groovesharkSidebarOptions() {
             $jsonSongString = gs_json_encode($songString);
             // Inline events used, since event delegation refuses to work
             print "<tr class='$rowClass'>
-                       <td class='gsTableButton'><a title='Add This Playlist To Your Post' class='gsAdd gsPlaylistAdd' onclick='addToSelectedPlaylist(this);' name='$playlistID' style='cursor: pointer'>$jsonSongString</a></td>
-                       <td class='gsTableButton'><a title='Show All Songs In This Playlist' class='gsShow' name='$playlistID' onclick='showPlaylistSongs(this);' style='cursor: pointer'>$jsonSongString</a></td>
+                       <td class='gsTableButton'><a title='Add This Playlist To Your Post' class='gsAdd gsPlaylistAdd' onclick='addToSelectedPlaylist(this);' name='$playlistID' style='cursor: pointer'><span style='display:none'>$jsonSongString</span></a></td>
+                       <td class='gsTableButton'><a title='Show All Songs In This Playlist' class='gsShow' name='$playlistID' onclick='showPlaylistSongs(this);' style='cursor: pointer'></a></td>
                        <td>{$playlistInfo['name']} ({$playlistInfo['numSongs']})</td>
                   </tr>";
             $alt = 0;

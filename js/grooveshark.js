@@ -1,8 +1,15 @@
 function debug(e) {
-    if (window.console && console.log)
+    if (window.console && console.log) {
+        // Firebug
         return console.log(e);
+    }
     if (window.opera && opera.postError) {
+        // Dragonfly
         return opera.postError(e);
+    }
+    if (window.console && console.debug) {
+        // Webkit
+        return console.debug(e);
     }
 }
 
@@ -266,7 +273,7 @@ function gsAppendToComment(obj) {
                 // should add support for custom single-song themes
                 songContent = getSingleGSWidget(songIDs[0], widgetWidth, 'metal');
             } else {
-                var name = jQuery('.gsSong-' + songIDs[0]).first().attr('name');
+                var name = jQuery('.gsSong-' + songIDs[0] + ':first').attr('name');
                 var songNameComplete = name.split('::')[0];
                 var songName = songNameComplete.split(' by ')[0];
                 var displayPhrase = document.getElementById('gsCommentDisplayPhrase').value;
@@ -496,8 +503,6 @@ function toggleSong(currentPlayed) {
     var songID = currentPlayed.name
     // Toggle the status for a song (play, pause, new song)
     var gsDataStore = jQuery('#gsDataStore').data('gsDataStore');
-    var sessionID = document.getElementById('gsSessionID').value;
-    var wpurl = document.getElementById('gsBlogUrl').value;
     var lastPlayed = gsDataStore.lastPlayed;
     if (typeof lastPlayed == 'boolean') {
         // initial song play

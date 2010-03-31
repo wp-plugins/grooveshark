@@ -142,7 +142,7 @@ function insertGroovesharkTag(identifier) {
 //Handles selecting a playlist for addition to the post.
 function addToSelectedPlaylist(obj) {
     // prepare playlist info
-    var playlistSongs = obj.innerHTML;
+    var playlistSongs = obj.firstChild.innerHTML;
     var playlistID = obj.name;
     var playlistSongs = jQuery.parseJSON(playlistSongs);
     var selectedTable = jQuery('#selected-songs-table');
@@ -239,7 +239,7 @@ function gsAppendToContent(obj) {
             if (displayOption == 'widget') {
                 songEmbed += getSingleGSWidget(songIDs[0], widgetWidth);
             } else {
-                var name = jQuery('.gsSong-' + songIDs[0]).first().attr('name');
+                var name = jQuery('.gsSong-' + songIDs[0] + ':first').attr('name');
                 var songNameComplete = name.split('::')[0];
                 var songName = songNameComplete.split(' by ')[0];
                 var displayPhrase = document.getElementById('displayPhrase').value;

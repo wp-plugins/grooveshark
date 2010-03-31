@@ -34,8 +34,12 @@ if ((isset($_POST['sessionID']) && ($_POST['sessionID'] != ''))) {
                     $songNameComplete = preg_replace("/\"/", "&quot;", $songNameComplete, -1);
                     // print the row containing all of this song's data
                     print (($index % 2) ? "<tr class='gsTr1'>" : "<tr class='$altClass'>") .
-                          "<td class='gsTableButton'><a title='Add This Song To Your Post' class='gsAdd' name='$songNameComplete::{$song['SongID']}' style='cursor:pointer;' id='gsSong-{$song['SongID']}'></a></td>
-                          <td class='gsTableButton'><a class='gsPlay' title='Play This Song' name='{$song['SongID']}' style='cursor:pointer;''></a></td>
+                          "<td class='gsTableButton'><a title='Add This Song To Your Post' class='gsAdd'"
+                          . ((isset($_POST['isSidebar']) && $_POST['isSidebar'] == 1) ? "onclick='addToSelected(this)'" : '') . 
+                          " name='$songNameComplete::{$song['SongID']}' style='cursor:pointer;' id='gsSong-{$song['SongID']}'></a></td>
+                          <td class='gsTableButton'><a class='gsPlay'"
+                          . ((isset($_POST['isSidebar']) && $_POST['isSidebar'] == 1) ? "onclick='toggleSong(this)'" : '') .  
+                          " title='Play This Song' name='{$song['SongID']}' style='cursor:pointer;''></a></td>
                           <td>$songNameComplete</td>
                           </tr>";
                     $index++;

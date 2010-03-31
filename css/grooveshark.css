@@ -278,7 +278,7 @@
 .gsTr26 {
     background-color: #EAF3FA !important;
 }
-.gsTr26 td, .gsTr27 td {
+.gsTr26 td, .gsTr27 td, .gsTr1 td, .gsTrDragged27 td, .gsTrDragged26 td{
     padding:5px 0 5px 0 !important!
     border:0 none !important;
     margin:0 !important;
