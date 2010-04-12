@@ -966,7 +966,7 @@ function groovesharkSidebarOptions() {
                 <param value='window' name='wmode'></param>
                 <param value='always' name='allowScriptAccess'></param>
                 <param value='hostname=cowbell.grooveshark.com&amp;songID=203993&amp;style=metal' name='flashvars'></param>
-                <embed width='200' height='40' wmode='window' allowscriptaccess='always' flashvars='hostname=cowbell.grooveshark.com&amp;songID=203993&amp;style=metal' type='application/x-shockwave-flash' src='http://staging.listen.grooveshark.com/songWidget.swf'></embed>
+                <embed width='200' height='40' wmode='window' allowscriptaccess='always' flashvars='hostname=cowbell.grooveshark.com&amp;songID=203993&amp;style=metal' type='application/x-shockwave-flash' src='http://listen.grooveshark.com/songWidget.swf'></embed>
             </object>
             </div>
         </span>

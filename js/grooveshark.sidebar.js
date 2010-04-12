@@ -532,7 +532,7 @@ function getGSWidgetEmbedCode(swfName, width, height, songIDs, ap, colors, theme
     }
     var ap = (+ap != 0) ? '&amp;p=' + ap : '';
     var embed = ["<object width='", width, "' height='", height, "'>",
-                         "<param name='movie' value='http://staging.listen.grooveshark.com/", swfName, "'></param>",
+                         "<param name='movie' value='http://listen.grooveshark.com/", swfName, "'></param>",
                          "<param name='wmode' value='window'></param>",
                          "<param name='allowScriptAccess' value='always'></param>",
                          "<param name='flashvars' value='hostname=cowbell.grooveshark.com&amp;", songIDString, theme, ap, colors, "'></param>",
