@@ -34,7 +34,7 @@ function getSelectedSongsTable(data, context) {
     } else {
         selectedTable = jQuery('#selected-songs-table', context);
         data.selectedSongsTable = selectedTable;
-        if (typeof(selectedTable.attr('onmousedown')) == 'undefined') {
+        if (typeof(selectedTable.data('events')) == 'undefined') {
             setUpTableDnD(selectedTable);
         }
     }

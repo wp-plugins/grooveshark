@@ -2,8 +2,8 @@
 Contributors: Grooveshark
 Tags: music, Grooveshark, play, Post, posts, tinysong, sidebar, widget
 Requires at least: 2.6
-Tested up to: 2.9.2
-Stable tag: 1.4.0
+Tested up to: 3.0
+Stable tag: 1.4.1
 
 The Grooveshark plugin allows you to insert music links or Grooveshark Widgets into your blog.
 
@@ -107,6 +107,10 @@ Note that some wordpress installations are incompatible with the Grooveshark RSS
 If you choose to add a Grooveshark Widget to your Wordpress sidebar, it is recommended that you keep the widget width to 200px, since this width fits best with the default Wordpress theme and with sidebar width for a majority of Wordpress themes. If a Grooveshark Widget disrupts the appearance of your blog from your sidebar, decrease the width of the widget, but do keep in mind that the minimum width is 150px.
 
 If you make the widget too large, it could also disrupt the appearance of your blog posts when you add a widget to a post. The maximum length and width of a widget are 1000 pixels each, but you may want to keep the dimensions small, particularly width, to ensure that the Grooveshark Widgets do not disrupt the layout and appearance of your blog.
+
+= How will the Grooveshark Plugin work with multiple blogs? =
+
+Starting with Wordpress 3.0, Wordpress has been merged with Wordpress MU, allowing anyone using Wordpress to host multiple blogs using one single installation of Wordpress. With multiple blogs enabled, the biggest difference you will notice is that all plugins, including Grooveshark for Wordpress, now have a "network activate" option, which activates the plugin for all blogs you are hosting. The only other major difference is that the plugin options will be stored separately for each blog hosted under your installation of Wordpress. This means you will have to provide your login information for each blog if you wish to use Favorites and Playlists on each blog, or if separate users are allowed to manage each blog, they can provide their own login information on their respective blogs. This also applies to the other Grooveshark for Wordpresss settings.
 
 == Screenshots ==
 
