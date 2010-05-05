@@ -4,12 +4,12 @@ Plugin Name: Grooveshark for Wordpress
 Plugin URI: http://www.grooveshark.com/wordpress
 Description: Search for <a href="http://www.grooveshark.com">Grooveshark</a> songs and add links to a song or song widgets to your blog posts. 
 Author: Roberto Sanchez and Vishal Agarwala
-Version: 1.4.0
+Version: 1.4.1
 Author URI: http://www.grooveshark.com
 */
 
 /*
-Copyright 2009 Escape Media Group (email: roberto.sanchez@escapemg.com)
+Copyright 2010 Escape Media Group (email: roberto.sanchez@escapemg.com)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -527,7 +527,8 @@ function gsUpdateUserPlaylists($gs_options, $gsapi) {
 
 function add_gs_options_page() 
 {
-    add_options_page('Grooveshark Options', 'Grooveshark', 8, basename(__FILE__), 'grooveshark_options_page');
+    add_options_page('Grooveshark Options', 'Grooveshark', 'edit_dashboard', basename(__FILE__), 'grooveshark_options_page');
+    //add_plugins_page('Grooveshark Options', 'Grooveshark', 'admin', 'Grooveshark', 'grooveshark_options_page');
 }
 
 // Registers the action to add the options page for the plugin.
@@ -560,7 +561,8 @@ function groovesharkRssContent($args) {
 function groovesharkSidebarInit() {
     $gs_options = get_option('gs_options');
     wp_register_sidebar_widget('groovesharkSidebar', 'Grooveshark Sidebar', 'groovesharkSidebarContent', array('description' => 'Add music to your Wordpress Sidebar using a Grooveshark Widget'));
-    register_widget_control('groovesharkSidebar', 'groovesharkSidebarOptions', 600);
+    //register_widget_control('groovesharkSidebar', 'groovesharkSidebarOptions', 600);
+    wp_register_widget_control('groovesharkSidebar', 'Grooveshark Sidebar', 'groovesharkSidebarOptions', array('width' => 600));
 }
 
 function groovesharkDashboardInit() {
@@ -577,7 +579,8 @@ function groovesharkRssInit() {
     $gs_options = get_option('gs_options');
     if ($gs_options['gsRssOption'] == 1) {
         wp_register_sidebar_widget('groovesharkRss', 'Grooveshark RSS', 'groovesharkRssContent', array('description' => 'Display an RSS feed to your favorite and recent songs on Grooveshark and link to them on your Wordpress Sidebar'));
-        register_widget_control('groovesharkRss', 'groovesharkRssOptions', 400);
+        //register_widget_control('groovesharkRss', 'groovesharkRssOptions', 400);
+        wp_register_widget_control('groovesharkRss', 'Grooveshark RSS', 'groovesharkRssOptions', array('width' => 400));
     }
 }
 
@@ -966,7 +969,7 @@ function groovesharkSidebarOptions() {
                 <param value='window' name='wmode'></param>
                 <param value='always' name='allowScriptAccess'></param>
                 <param value='hostname=cowbell.grooveshark.com&amp;songID=203993&amp;style=metal' name='flashvars'></param>
-                <embed width='200' height='40' wmode='window' allowscriptaccess='always' flashvars='hostname=cowbell.grooveshark.com&amp;songID=203993&amp;style=metal' type='application/x-shockwave-flash' src='http://staging.listen.grooveshark.com/songWidget.swf'></embed>
+                <embed width='200' height='40' wmode='window' allowscriptaccess='always' flashvars='hostname=cowbell.grooveshark.com&amp;songID=203993&amp;style=metal' type='application/x-shockwave-flash' src='http://listen.grooveshark.com/songWidget.swf'></embed>
             </object>
             </div>
         </span>
@@ -1145,9 +1148,16 @@ print "<input type='hidden' name='sessionID' value='$sessionID' />
 
 function gs_appendToComment($data) {
     $gsContent = '';
-    //Processing Code
+    //Processing Code, does nothing now, but may do something in the future
     $data['comment_content'] .= $gsContent;
     return $data;
+}
+
+function postHasValue($key, $value) {
+    if (!isset($_POST[$key])) {
+        return false;
+    }
+    return $_POST[$key] == $value;
 }
 
 // The function to display the options page.
@@ -1158,49 +1168,48 @@ function grooveshark_options_page() {
     $gs_options = get_option('gs_options');
     $settingsSaved = 0;
     // If the user wants to update the options...
-    if ((($_POST['status'] == 'update') || ($_POST['Submit'] == 'Enter'))) {
+    if (((postHasValue('status', 'update')) || (postHasValue('Submit', 'Enter')))) {
         $updateOptions = array();
-        $username = $_POST['gs-username'];
-        $password = $_POST['gs-password'];
         /* If a username and password was entered, checks to see if they are valid via the 
         session.loginViaAuthToken method. If they are valid, the userID and token are retrieved and saved. */
-        if (((isset($username) and $username != '') && (isset($password) and $password != ''))) {
+        if ((isset($_POST['gs-username']) && $_POST['gs-username'] != '') && (isset($_POST['gs-password']) && $_POST['gs-password'] != '')) {
             $userID = 0;
+            $username = $_POST['gs-username'];
+            $password = $_POST['gs-password'];
             $token = md5($username . md5($password));
             $result = $gsapi->authenticateUser($username, $token);
             if ($result === true) {
                 $userID = $gsapi->getUserID();
             } else {
-                $errorCodes[] = 'Could not authenticate login information.';
+                $errorCodes[] = 'Could not authenticate login information';
                 $token = '';
                 $username = '';
             }
             $updateOptions += array('userID' => $userID, 'token' => $token, 'username' => $username);
         }
         // Sets the number of songs the user wants to search for. If no number was enter, it just saved the default (30).
-        $numberOfSongs = $_POST['numberOfSongs'];
-        if (!isset($numberOfSongs)) {
-            $numberOfSongs = 30;
+        $numberOfSongs = 30;
+        if (isset($_POST['numberOfSongs'])) {
+            $numberOfSongs = $_POST['numberOfSongs'];
         }
         $updateOptions += array('numberOfSongs' => $numberOfSongs);
         // Sets the display option for comment music
-        $commentDisplayOption = $_POST['commentDisplayOption'];
-        if (isset($commentDisplayOption)) {
-            $updateOptions += array('commentDisplayOption' => $commentDisplayOption);
+        if (isset($_POST['commentDisplayOption'])) {
+            $updateOptions += array('commentDisplayOption' => $_POST['commentDisplayOption']);
         }
         // Set the widget width for comment widgets
-        $commentWidgetWidth = $_POST['commentWidgetWidth'];
-        if (isset($commentWidgetWidth)) {
+        if (isset($_POST['commentWidgetWidth'])) {
+            $commentWidgetWidth = $_POST['commentWidgetWidth'];
             if ($commentWidgetWidth < 150) {
                 $commentWidgetWidth = 150;
             }
-            if ($commentWidgetHeight > 1000) {
-                $commentWidgetHeight = 1000;
+            if ($commentWidgetWidth > 1000) {
+                $commentWidgetWidth = 1000;
             }
             $updateOptions += array('commentWidgetWidth' => $commentWidgetWidth);
         }
-        $commentWidgetHeight = $_POST['commentWidgetHeight'];
-        if (isset($commentWidgetHeight)) {
+        if (isset($_POST['commentWidgetHeight'])) {
+            $commentWidgetHeight = $_POST['commentWidgetHeight'];
             if (($commentWidgetHeight < 150) && ($commentWidgetHeight != 0)) {
                 $commentWidgetHeight = 150;
             }
@@ -1209,20 +1218,17 @@ function grooveshark_options_page() {
             }
             $updateOptions += array('commentWidgetHeight' => $commentWidgetHeight);
         }
-        $commentSongLimit = $_POST['commentSongLimit'];
-        if (isset($commentSongLimit)) {
-            $updateOptions += array('commentSongLimit' => $commentSongLimit);
+        if (isset($_POST['commentSongLimit'])) {
+            $updateOptions += array('commentSongLimit' => $_POST['commentSongLimit']);
         }
-        $commentDisplayPhrase = $_POST['commentDisplayPhrase'];
-        if (isset($commentDisplayPhrase)) {
-            $updateOptions += array('commentDisplayPhrase' => $commentDisplayPhrase);
+        if (isset($_POST['commentDisplayPhrase'])) {
+            $updateOptions += array('commentDisplayPhrase' => $_POST['commentDisplayPhrase']);
         }
-        $commentPlaylistName = $_POST['commentPlaylistName'];
-        if (isset($commentPlaylistName)) {
-            $updateOptions += array('commentPlaylistName' => $commentPlaylistName);
+        if (isset($_POST['commentPlaylistName'])) {
+            $updateOptions += array('commentPlaylistName' => $_POST['commentPlaylistName']);
         }
-        $commentColorScheme = $_POST['commentColorScheme'];
-        if (isset($commentColorScheme)) {
+        if (isset($_POST['commentColorScheme'])) {
+            $commentColorScheme = $_POST['commentColorScheme'];
             if ($commentColorScheme < 0) {
                 $commentColorScheme = 0;
             }
@@ -1236,36 +1242,36 @@ function grooveshark_options_page() {
         update_option('gs_options',$gs_options);
         $settingsSaved = 1;
     }
-    if ($_POST['Submit'] != 'Enter') {
+    if (!postHasValue('Submit', 'Enter')) {
         print "<div class='updated'>";
-        if ($_POST['Status'] == 'Reset') {
-            // user wants to reset login information, destroy saved token and set userID and username to empty
-            $updateArray = array('userID' => 0, 'token' => '', 'username' => '');
+        if (postHasValue('Status', 'Reset')) {
+            // user wants to reset login information, destroy saved token and set userID, username, and user playlists to empty
+            $updateArray = array('userID' => 0, 'token' => '', 'username' => '', 'userPlaylists' => array());
             $gs_options = array_merge($gs_options, $updateArray);
             update_option('gs_options', $gs_options);
             print "<p>Login information has been reset.</p>";
         }
-        if ($_POST['gsRssOption'] == 'Enable') {
+        if (postHasValue('gsRssOption', 'Enable')) {
             // user wants to enable Grooveshark RSS
             $gs_options['gsRssOption'] = 1;
             print "<p>Grooveshark RSS Enabled</p>";
-        } elseif ($_POST['gsRssOption'] == 'Disable') {
+        } elseif (postHasValue('gsRssOption', 'Disable')) {
             // user wants to disable Grooveshark RSS
             $gs_options['gsRssOption'] = 0;
             print "<p>Grooveshark RSS Disabled</p>";
         }
-        if ($_POST['sidebarOptions'] == 'Clear') {
+        if (postHasValue('sidebarOptions', 'Clear')) {
             $gs_options['sidebarPlaylists'] = array();
             print "<p>Grooveshark Sidebar Cleared</p>";
         }
-        if ($_POST['dashboardOptions'] == 'Clear') {
+        if (postHasValue('dashboardOptions', 'Clear')) {
             $gs_options['dashboardPlaylists'] = array();
             print "<p>Grooveshark Dashboard Cleared</p>";
         }
-        if ($_POST['musicComments'] == 'Enable') {
+        if (postHasValue('musicComments', 'Enable')) {
             $gs_options['musicComments'] = 1;
             print "<p>Music Comments Enabled</p>";
-        } elseif ($_POST['musicComments'] == 'Disable') {
+        } elseif (postHasValue('musicComments', 'Disable')) {
             $gs_options['musicComments'] = 0;
             print "<p>Music Comments Disabled</p>";
         }
@@ -1373,9 +1379,9 @@ function grooveshark_options_page() {
                    foreach ($colorsArray as $id => $colorOption) {
                        print "<option value='$id' ";
                        if ($id == $commentColorScheme) {
-                           print "selected ";
+                           print "selected='selected' ";
                        }
-                       print ">$colorOption</option";
+                       print ">$colorOption</option>";
                    }
                    print "&nbsp; Specify the color scheme of widgets embeded in user comments.</td>
                 </tr>";

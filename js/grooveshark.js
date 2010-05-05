@@ -182,7 +182,7 @@ function addToSelected(songInfo) {
             className = 'gsTr1';
         }
         // Prepare the row with the selected song
-        var rowContent = "<tr class='"+className+"'><td class='gsTableButton'>" + ((document.getElementById('isSmallBox').value == 1) ? ("<a class='gsRemove' title='Remove This Song' style='cursor:pointer;'></a></td>") : ("<a title='Play This Song' class='gsPlay' name='"+songID+"' style='cursor: pointer;'></a></td>")) + "<td>"+songNameComplete+"<input type='hidden' class='gsSong-"+songID+"' name='" + songNameComplete + "::" + songID + "' /><input type='hidden' name='songsInfoArray[]' class='songsInfoArrayClass' value='"+songID+"'/></td>" + ((document.getElementById('isSmallBox').value == 1) ? '' : "<td class='gsTableButton'><a title='Remove This Song' class='gsRemove' style='cursor: pointer; float: right;'></a></td>") + "</tr>";
+        var rowContent = "<tr class='"+className+"'><td class='gsTableButton'><a title='Play This Song' class='gsPlay' name='"+songID+"' style='cursor: pointer;'></a></td><td>"+songNameComplete+"<input type='hidden' class='gsSong-"+songID+"' name='" + songNameComplete + "::" + songID + "' /><input type='hidden' name='songsInfoArray[]' class='songsInfoArrayClass' value='"+songID+"'/></td><td class='gsTableButton'><a title='Remove This Song' class='gsRemove' style='cursor: pointer; float: right;'></a></td></tr>";
         selectedTable.append(rowContent);
         // Auto-adjust the widget height for the new number of songs, unless height is predetermined by user
         widgetHeight = jQuery('#widgetHeight');
@@ -191,6 +191,9 @@ function addToSelected(songInfo) {
         }
     }
     updateCount();
+    if (jQuery.isFunction(gsUpdateMultiPreview)) {
+        gsUpdateMultiPreview();
+    }
 }
 
 
@@ -212,6 +215,9 @@ function removeFromSelected(element) {
     jQuery('#selected-songs-table tr:odd').attr('class', 'gsTr1');
     jQuery('#selected-songs-table tr:even').attr('class', jQuery('#gsDataStore').data('gsDataStore').isVersion26 ? 'gsTr26' : 'gsTr27');
     updateCount();
+    if (jQuery.isFunction(gsUpdateMultiPreview)) {
+        gsUpdateMultiPreview();
+    }
 }
 
 
@@ -265,7 +271,9 @@ function gsAppendToComment(obj) {
         var widgetWidth = document.getElementById('gsCommentWidth').value;
         var displayOption = document.getElementById('gsCommentDisplayOption').value; // either link or widget
         var colorScheme = document.getElementById('gsCommentColorScheme').value;
+        debug(colorScheme);
         var colorArray = getBackgroundHex(colorScheme);
+        debug(colorArray);
         var songContent = '';
         if (songIDs.length == 1) {
             //single song
@@ -290,9 +298,7 @@ function gsAppendToComment(obj) {
                     }
                     obj.value = 'Save Music';
                     obj.disabled = false;
-                    var gsStatusMessage = jQuery('#gsCommentStatusMessage');
-                    gsStatusMessage.show().html('Your music is in your comment.');
-                    setTimeout(function() {gsStatusMessage.fadeOut(3000, function() {gsStatusMessage.html('');});}, 3000);
+                    gsDisplayStatusMessage('Your music is in your comment.');
                 });
                 return;
             }
@@ -319,11 +325,19 @@ function gsAppendToComment(obj) {
         }
         obj.value = 'Save Music';
         obj.disabled = false;
-        var gsStatusMessage = jQuery('#gsCommentStatusMessage');
-        gsStatusMessage.show().html('Your music is in your comment.');
-        setTimeout(function() {gsStatusMessage.fadeOut(3000, function() {gsStatusMessage.html('');});}, 3000);
+        gsDisplayStatusMessage('Your music is in your comment.');
+    } else {
+        // no songs available, notify the user
+        gsDisplayStatusMessage('Please select songs to save to your comment.');
     }
 }
+
+function gsDisplayStatusMessage(message) {
+    var gsStatusMessage = jQuery('#gsCommentStatusMessage');
+    gsStatusMessage.show().html(message);
+    setTimeout(function() {gsStatusMessage.fadeOut(3000, function() {gsStatusMessage.html('');});}, 3000);
+}
+
 
 function getSingleGSWidget(songID, width, theme) {
     return getGSWidgetEmbedCode('songWidget.swf', width, 40, [songID], 0, '', "&amp;style=" + theme);

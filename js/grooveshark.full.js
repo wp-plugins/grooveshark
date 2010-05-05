@@ -169,6 +169,7 @@ function addToSelectedPlaylist(obj) {
     });
     selectedTable.append(newSongContent.join(''));
     updateCount();
+    gsUpdateMultiPreview();
     jQuery('#widgetHeight').val(widgetHeight);
 }
 
@@ -248,6 +249,7 @@ function gsAppendToContent(obj) {
                     gsAddSongEmbedToPost(songEmbed);
                     obj.value = 'Save Music';
                     obj.disabled = false;
+                    gsDisplayStatusMessage('Your song link is in your post.');
                 });
                 return;
             }
@@ -293,6 +295,7 @@ function gsAppendToContent(obj) {
                         gsAddSongEmbedToPost(songEmbed);
                         obj.value = 'Save Music';
                         obj.disabled = false;
+                        gsDisplayStatusMessage('Your playlist link is in your post.');
                     });
                     return;
                 }
@@ -303,9 +306,9 @@ function gsAppendToContent(obj) {
 
         obj.value = 'Save Music';
         obj.disabled = false;
-        var gsStatusMessage = jQuery('#gsCommentStatusMessage');
-        gsStatusMessage.show().html('Your widget is in your post.');
-        setTimeout(function() {gsStatusMessage.fadeOut(3000, function() {gsStatusMessage.html('');});}, 3000);
+        gsDisplayStatusMessage('Your widget is in your post.');
+    } else {
+        gsDisplayStatusMessage('Please select songs to save to your post.');
     }
 }
 
