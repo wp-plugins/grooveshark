@@ -1,4 +1,5 @@
 <?php
+// RSS logic moved here for wordpress installations incompatible with the Grooveshark RSS feature, so that the plugin does not break these installations when activated by default
         if (!empty($gs_options['sidebarRss']['favorites'])) {
             print $args['before_widget'] . $args['before_title'] . 
                   "<a class='rsswidget' title='Syndicate this content' href='{$gs_options['sidebarRss']['favorites']['url']}'>
@@ -27,12 +28,12 @@
                         $count++;
                         if ($count <= $limit) {
                             print "<li>
-                                      <a class='rsswidget' target='_blank' title='{$item->get_description()}' href='{$item->get_permalink()}'>{$item->get_title()}</a>";
-                            if ($displayContent) {
-                                print "<div class='rssSummary'>{$item->get_description()}</div>";
-                            }
-                            print "</li>";
+                                      <a class='rsswidget' target='_blank' title='{$item->get_description()}' href='{$item->get_permalink()}'>{$item->get_title()}</a>
+                                  </li>";
                         }
+                    }
+                    if ($count == 0) {
+                        print "<li>This feed is currently empty. Please try again later.</li>";
                     }
                     print "</ul>";
                 }
@@ -65,12 +66,12 @@
                         $count++;
                         if ($count <= $limit) {
                             print "<li>
-                                       <a class='rsswidget' target='_blank' title='{$item->get_description()}' href='{$item->get_permalink()}'>{$item->get_title()}</a>";
-                            if ($displayContent) {
-                                print "<div class='rssSummary'>{$item->get_description()}</div>";
-                            }
-                            print "</li>";
+                                       <a class='rsswidget' target='_blank' title='{$item->get_description()}' href='{$item->get_permalink()}'>{$item->get_title()}</a>
+                                  </li>";
                         }
+                    }
+                    if ($count == 0) {
+                        print "<li>This feed is currently empty. Please try again later.</li>";
                     }
                     print "</ul>";
                 }

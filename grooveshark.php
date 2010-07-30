@@ -63,6 +63,7 @@ if (get_option('gs_options') == FALSE) {
         'commentSongLimit' => 1, // Limit the number of songs that can be added to comment widgets (0 for no limit, also limit only applies to widget)
         'javascriptPos' => 'head',
         'gsRssOption' => 0,
+        'gsRolesOption' => 0,
         'sidebarRss' => array()));
 }
 
@@ -85,6 +86,18 @@ if (empty($gs_options['javascriptPos'])) {
 
     update_option('gs_options', $gs_options);
 }
+
+
+if (empty($gs_options['gsRolesOption'])) {
+    // another update, set another essential option
+    $gs_options['gsRolesOption'] = 0;
+    update_option('gs_options', $gs_options);
+}
+/*
+        global $current_user;
+        get_currentuserinfo();
+        var_dump($current_user);
+        */
 
 add_action('admin_menu','addGroovesharkBox');
 
@@ -418,11 +431,7 @@ function groovesharkBox()
     $colorScheme = $gs_options['colorScheme']; //use this to save the user's colorscheme preferences
     $colorsArray = array("Default","Walking on the Sun","Neon Disaster","Golf Course","Creamcicle at the Beach Party","Toy Boat","Wine and Chocolate Covered Strawberries","Japanese Kite","Eggs and Catsup","Shark Bait","Sesame Street","Robot Food","Asian Haircut","Goth Girl","I Woke Up And My House Was Gone","Too Drive To Drunk","She Said She Was 18","Lemon Party","Hipster Sneakers","Blue Moon I Saw You Standing Alone","Monkey Trouble In Paradise");
     foreach ($colorsArray as $id => $colorOption) {
-        print "<option value='$id' ";
-        if ($i == $colorScheme) {
-            print "selected ";
-        }
-        print ">$colorOption</option>";
+        print "<option value='$id'>$colorOption</option>";
     }
 print "
                     </select>
@@ -603,7 +612,6 @@ function groovesharkRssOptions() {
             $gs_options['sidebarRss']['recent'] = array();
         }
         $gs_options['sidebarRss']['count'] = $_POST['gsNumberOfItems'];
-        $gs_options['sidebarRss']['displayContent'] = isset($_POST['gsDisplayContent']) ? 1 : 0;
         update_option('gs_options', $gs_options);
     }
     // Have the configuration options here
@@ -627,7 +635,6 @@ function groovesharkRssOptions() {
             print "<option value='$i' " . ($gs_options['sidebarRss']['count'] == $i ? "selected='selected'" : '') . ">$i</option>";
         }
         print "</select></label></li>
-               <li><label><input type='checkbox' name='gsDisplayContent' " . ($gs_options['sidebarRss']['displayContent'] ? "checked='checked'" : '' ) . "/>&nbsp; Display Item Content?</label></li>
                </ul>";
     }
 }
@@ -935,6 +942,7 @@ function groovesharkSidebarOptions() {
     }
     print "</div>";
 
+
     print "<div id='selected-song' class='gsSongBox26'>
         <div id='selected-songs-header'>
                 <a title='Remove All Your Selected Songs' href='javascript:;' id='clearSelected' onclick='clearSelected(this)'>Clear All</a>
@@ -947,7 +955,6 @@ function groovesharkSidebarOptions() {
     <h3 class='groovesharkHeader'>Appearance Options</h3>
     <input type='hidden' id='sidebarDataStore' value='-1'>
     <ul class='gsAppearanceOptions'>
-    <li><span class='key'><label for='gsClearSidebar'>Clear Sidebar:</label></span><span class='value'><input type='checkbox' name='gsClearSidebar' id='gsClearSidebar' /><span style='font-size:12px'>Check this box and Save to clear the Grooveshark Sidebar.</span></span></li>
     <li><span class='key'><label for='sidebarWidgetWidth'>Widget Width (px):</label></span><span class='value'><input tabindex='900' type='text' name='sidebarWidgetWidth' id='gsSidebarWidgetWidth' value='200' onchange='gsUpdateSidebarWidth(this)'/></span></li>
     <li><span class='key'><label for='sidebarWidgetHeight'>Widget Height (px):</label></span><span class='value'><input tabindex='901' type='text' name='sidebarWidgetHeight' id='gsSidebarWidgetHeight' value='176' onchange='gsUpdateSidebarHeight(this)'/><span>For Multiple Songs</span></span></li>
     <li>
@@ -1009,12 +1016,16 @@ function groovesharkSidebarOptions() {
             </object>
             </div>
             </span>
-            </li></ul>
+    </li>
+    <li>
+       <span class='key'><input tabindex='110' type='submit' class='button-primary widget-control-save' value='Clear Sidebar' id='gsClearSidebar' name='gsClearSidebar' /></span>
+       <span class='value' style='font-size:12px'>Click this button to clear the Grooveshark Sidebar.</span>
+    </li></ul>
             <div style='clear:both'></div>";
     if ($didSave == 1) {
-        print "<p>Your music has been saved.</p>";
+        print "<p style='padding-top:10px'>Your music has been saved.</p>";
     } elseif ($didSave == 2) {
-        print "<p>Your sidebar has been cleared.</p>";
+        print "<p style='padding-top:10px'>Your sidebar has been cleared.</p>";
     }
 }
 
@@ -1272,6 +1283,34 @@ function grooveshark_options_page() {
             $gs_options['musicComments'] = 0;
             print "<p>Music Comments Disabled</p>";
         }
+        if (postHasValue('gsRolesOption', 'Enable')) {
+            // user wants to enable the Grooveshark role, add to wordpress database
+            global $wpdb;
+            $role_id = $wpdb->prefix . 'user_roles';
+            $user_roles = get_option($role_id);
+            $user_roles['grooveshark'] = array('name' => 'Grooveshark', 'capabilities' => array(
+                'edit_posts' => true,
+                'read'  => true,
+                'level_0'   => true,
+                'level_1'   => true,
+                'delete_posts'  => true,
+                'edit_nav_menu_items'   => true,
+                'delete_nav_menu_items' => true,
+                'unfiltered_html' => true)
+            );
+            update_option($role_id, $user_roles);
+            $gs_options['gsRolesOption'] = 1;
+            print "<p>Grooveshark Role Enabled</p>";
+        } elseif (postHasValue('gsRolesOption', 'Disable')) {
+            // user wants to disable Grooveshark role, remove from database
+            global $wpdb;
+            $role_id = $wpdb->prefix . 'user_roles';
+            $user_roles = get_option($role_id);
+            unset($user_roles['grooveshark']);
+            update_option($role_id, $user_roles);
+            $gs_options['gsRolesOption'] = 0;
+            print "<p>Grooveshark Role Disabled</p>";
+        }
         if ($settingsSaved) {
             print "<p>Settings Saved</p>";
         }
@@ -1412,6 +1451,15 @@ function grooveshark_options_page() {
         print "<td class='submit'><input type='submit' name='gsRssOption' id='gsRssOption' value='Disable' /> &nbsp; Click this button to disable the Grooveshark RSS feature.</td>";
     } else {
         print "<td class='submit'><input type='submit' name='gsRssOption' id='gsRssOption' value='Enable' /> &nbsp; Grooveshark RSS is disabled by default due to incompatibilities with certain wordpress installations. Click to enable.</td>";
+    }
+    print "</tr>";
+    // Finished displaying the form for rss, and displays the form for user roles
+    print "<tr align='top'><th scope='row'><label for='gsRolesOption'>Enable Grooveshark Role:</label></th>";
+    $gsRolesOption = $gs_options['gsRolesOption'];
+    if ($gsRolesOption) {
+        print "<td class='submit'><input type='submit' name='gsRolesOption' id='gsRolesOption' value='Disable' /> &nbsp; Click this button to disable the Grooveshark Role feature.</td>";
+    } else {
+        print "<td class='submit'><input type='submit' name='gsRolesOption' id='gsRolesOption' value='Enable' /> &nbsp; Click to enable the Grooveshark role, a user role with the same capabilities as a Contributor that adds the ability to save widgets to posts.</td>";
     }
     print "</tr>";
     // Finished displaying all forms, and then ends.

@@ -112,6 +112,12 @@ If you make the widget too large, it could also disrupt the appearance of your b
 
 Starting with Wordpress 3.0, Wordpress has been merged with Wordpress MU, allowing anyone using Wordpress to host multiple blogs using one single installation of Wordpress. With multiple blogs enabled, the biggest difference you will notice is that all plugins, including Grooveshark for Wordpress, now have a "network activate" option, which activates the plugin for all blogs you are hosting. The only other major difference is that the plugin options will be stored separately for each blog hosted under your installation of Wordpress. This means you will have to provide your login information for each blog if you wish to use Favorites and Playlists on each blog, or if separate users are allowed to manage each blog, they can provide their own login information on their respective blogs. This also applies to the other Grooveshark for Wordpresss settings.
 
+= Why can't users with the Author and Contributor roles post widgets? =
+
+The Author and Contributor roles, installed by default with Wordpress, allow registered users of your Wordpress installation to make and publish posts to your blog. While both of these roles can access the Grooveshark plugin, neither role can post widgets created using the Grooveshark plugin.
+
+To help blog admins allow users to post widgets and keep users organized, the Grooveshark plugin allows admins to add another role, the Grooveshark role, to their Wordpress installation. The Grooveshark role has the same capabilities as the Contributor role, but also has the ability to post Grooveshark widgets created using the plugin. Since this capability allows users to publish arbitrary code in addition to Grooveshark widgets, the Grooveshark role retains the Contributor role requirement that any posts made must be approved by the admin or an Editor for the post to be published.
+
 == Screenshots ==
 
 1. Grooveshark for Wordpress Add Music Panel

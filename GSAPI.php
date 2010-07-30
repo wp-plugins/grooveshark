@@ -95,8 +95,12 @@ class GSAPI
         if (!isset($result['result']) && !isset($result['result']['UserID'])) {
             return false;
         } else {
-            $this->userID = $result['result']['UserID'];
-            return true;
+            if ($result['result']['UserID'] == 0) {
+                return false;
+            } else {
+                $this->userID = $result['result']['UserID'];
+                return true;
+            }
         }
     }
 

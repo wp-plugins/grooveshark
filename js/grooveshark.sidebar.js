@@ -256,10 +256,10 @@ function addToSelectedPlaylist(obj) {
             }
         }
     });
-    gsUpdateSidebarHeight(sidebarWidgetHeight[0]);
     selectedTable.append(newSongContent.join(''));
     updateCount(context);
     sidebarWidgetHeight.val(widgetHeight);
+    gsUpdateSidebarHeight(sidebarWidgetHeight[0]);
 }
 
 //Handles selecting a song for addition to the post.
@@ -290,6 +290,8 @@ function addToSelected(obj) {
         }
         gsUpdateSidebarHeight(widgetHeight[0]);
         updateCount(context);
+        gsUpdateSinglePreview(myData, widgetHeight[0]);
+        debug('updating single preview');
     }
 }
 
@@ -334,6 +336,7 @@ function removeFromSelected(element) {
         widgetHeight.val((+widgetHeight.val()) - 22);
     }
     gsUpdateSidebarHeight(widgetHeight[0]);
+    gsUpdateSinglePreview(myData, widgetHeight[0]);
     selectedTable.find('tr:odd').attr('class', 'gsTr1');
     selectedTable.find('tr:even').attr('class', 'gsTr26');
     updateCount(context);
@@ -388,7 +391,7 @@ function gsUpdateSidebarWidth(obj) {
 function gsUpdateSidebarHeight(obj) {
     var myData = jQuery('#myHiddenData').data('data');
     myData.widgetHeight = +obj.value;
-    gsUpdateMultiPreview(myData, obj);
+    setTimeout(function() {gsUpdateMultiPreview(myData, obj);}, 1000);
 }
 
 function gsUpdateSinglePreview(myData, obj) {
