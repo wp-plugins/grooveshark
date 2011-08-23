@@ -9,6 +9,15 @@ The Grooveshark plugin allows you to insert music links or Grooveshark Widgets i
 
 == Description ==
 
+= Important Note =
+
+Currently, our plugin is incompatible with the latest version of Wordpress. To get your Grooveshark Widget on your blog, we recommend using:
+
+* [Embedly](http://wordpress.org/extend/plugins/embedly/ "Embedly"), a Wordpress plugin that allows you to embed content from many of your favorite sites, including Grooveshark. The free version of Embedly allows you to embed up to 10,000 URLs per month and has a friendly interface.
+* You may also use Gigya code to embed a Grooveshark widget into your blog. A quick tutorial on how to create and embed a Wordpress widget is located here: [Grooveshark Help](http://help.grooveshark.com/customer/portal/articles/88918-embedding-a-grooveshark-widget-with-gigya "Grooveshark Help")
+
+= Description =
+
 The Grooveshark plugin is a Wordpress plugin that allows you to insert a link to music on [Grooveshark](http://www.grooveshark.com "Grooveshark") or a [Grooveshark Widget](http://widgets.grooveshark.com "Grooveshark Widget") that allows visitors to play music as they view your blog.
 
 Grooveshark is a music website that allows visitors to listen to music and share music with friends. Registered users can also save favorite songs and playlists on Grooveshark. With millions of songs contributed by Grooveshark users, you can find just about any song to share with your friends and blog visitors.
